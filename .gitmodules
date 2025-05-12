@@ -1,0 +1,4 @@
+[submodule "libamdsmi"]
+	path = libamdsmi
+	url = https://github.com/ROCm/amdsmi.git
+    branch = amd-mainline

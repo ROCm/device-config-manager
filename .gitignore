@@ -1,0 +1,7 @@
+bin
+*.tgz
+*.tar.gz
+*.tar
+asset-build
+box.rb
+.job.yml
