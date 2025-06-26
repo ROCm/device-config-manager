@@ -305,3 +305,27 @@ func (s *E2ESuite) Test010DCMNPS2Partitioning(c *C) {
 	}
 	validateNodeLabels(c, labels, false)
 }
+
+func (s *E2ESuite) Test010DCMNPS2Partitioning(c *C) {
+	ctx := context.Background()
+
+	worker_node := s.getWorkerNode(c, ctx)
+	log.Printf("Adding node label to select profile: nps2\n")
+	s.addRemoveNodeLabels(worker_node, "nps2")
+	labels, err := s.k8sclient.GetNodeLabel(ctx, worker_node)
+	if err != nil {
+		log.Printf("Error in getting node labels")
+		assert.Fail(c, err.Error())
+		return
+	}
+	if len(labels) != 0 {
+		gpuConfigProfileState := labels[GpuConfigProfileStateLabel]
+		log.Printf("gpuConfigProfileState: %v", gpuConfigProfileState)
+		if gpuConfigProfileState != "success" {
+			log.Printf("GPUConfigProfileState label reporting partition as failure")
+			assert.Fail(c, "GPUConfigProfileState -> Failure")
+			return
+		}
+	}
+	log.Printf("GPUConfigProfileState label reporting partition as success")
+}
