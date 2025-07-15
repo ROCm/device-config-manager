@@ -439,14 +439,14 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 
 			partition_needed = true
 			if currentMemory != existingMemory {
-				log.Printf("Profile: %s, Existing MemoryPartition: %s\n", selectedProfile, existingMemory)
+				log.Printf("Profile: %s, Existing MemoryPartition: %s\nTriggering memory partition to %v:\n", selectedProfile, existingMemory, currentMemory)
 
 				memoryType := convertMemoryPartitionType(currentMemory)
 				ret_n := C.amdsmi_set_gpu_memory_partition(processor_handle, memoryType)
 				updatedMemory := getCurrentGPUMemoryPartition(processor_handle)
 				if ret_n != C.AMDSMI_STATUS_SUCCESS || (updatedMemory == existingMemory) {
 					partition_err_reason = getAMDSMIStatusString(int(ret_n))
-					log_e.Errorf("Failed to memory partition %v \n", partition_err_reason)
+					log_e.Errorf("Failed to memory partition. Reason: %v \n", partition_err_reason)
 					if ret_n == C.AMDSMI_STATUS_BUSY {
 						log_e.Errorf("There might be existing pods/daemonsets on the cluster keeping the GPU resource busy, please remove them and retry. Pods list on this node: %v", podList)
 					}
@@ -464,7 +464,7 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 			existingCompute = getCurrentGPUComputePartition(processor_handle)
 
 			if currentCompute != existingCompute {
-				log.Printf("Profile: %s, Existing ComputePartition %s\n", selectedProfile, existingCompute)
+				log.Printf("Profile: %s, Existing ComputePartition %s\nTriggering compute partition to %v:\n", selectedProfile, existingCompute, currentCompute)
 				existingCompute = currentCompute
 
 				computeType := convertComputePartitonType(currentCompute)
@@ -475,7 +475,7 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 				updatedCompute := getCurrentGPUComputePartition(processor_handle)
 				if ret_n != C.AMDSMI_STATUS_SUCCESS {
 					partition_err_reason = getAMDSMIStatusString(int(ret_n))
-					log_e.Errorf("Failed to partition %v \n", partition_err_reason)
+					log_e.Errorf("Failed to compute partition. Reason: %v \n", partition_err_reason)
 					if ret_n == C.AMDSMI_STATUS_BUSY {
 						log_e.Errorf("There might be existing pods/daemonsets on the cluster keeping the GPU resource busy, please remove them and retry. Pods list on this node: %v", podList)
 					}
