@@ -74,10 +74,10 @@ AMDSMi_BASE_AZURE ?= mcr.microsoft.com/azurelinux/base/core:3.0
 #Builder images can be built using targets make amdsmi-build-ub22, 24 etc
 #Push them to internal registry as changes are needed
 #These builder images are used rather than BASE images to prevent building the same image redundantly
-AMDSMI_BUILDER_IMAGE ?= amdsmi-builder-dcm:rhel9
-AMDSMI_BUILDER_UB22_IMAGE ?= amdsmi-builder-dcm:ub22
-AMDSMI_BUILDER_UB24_IMAGE ?= amdsmi-builder-dcm:ub24
-AMDSMI_BUILDER_AZURE_IMAGE ?= amdsmi-builder-dcm:azure
+AMDSMI_BUILDER_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:rhel9
+AMDSMI_BUILDER_UB22_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:ub22
+AMDSMI_BUILDER_UB24_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:ub24
+AMDSMI_BUILDER_AZURE_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:azure
 
 # amdsmi builder base images and tags
 export AMDSMI_BASE_IMAGE
@@ -147,7 +147,7 @@ docker-compile:
 		-v $(HOME)/.ssh:/home/$(shell whoami)/.ssh \
 		-w $(CONTAINER_WORKDIR) \
 		$(BUILD_CONTAINER) \
-		bash -c "cd $(CONTAINER_WORKDIR) && source ~/.bashrc && git config --global --add safe.directory $(CONTAINER_WORKDIR) && make all"
+		bash -c "cd $(CONTAINER_WORKDIR) && source ~/.bashrc && git config --global --add safe.directory $(CONTAINER_WORKDIR) && make amdsmi-build-rhel && make all"
 
 # create development build container only if there is changes done on
 # tools/base-image/Dockerfile
@@ -163,6 +163,7 @@ clean:
 dcm:
 	${MAKE} -C cmd/deviceconfigmanager build run ARGS="-k" TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(RHEL_VERSION) UBUNTU_LIBDIR=$(RHEL_LIBDIR) GIT_COMMIT=$(GIT_COMMIT) VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE)
 
+# debian case supported for the next release
 .PHONY: dcm-st
 dcm-st:
 	${MAKE} -C cmd/deviceconfigmanager build-st run-st ARGS="-d" TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(UBUNTU_VERSION) UBUNTU_LIBDIR=$(UBUNTU_LIBDIR) GIT_COMMIT=$(GIT_COMMIT) VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE)

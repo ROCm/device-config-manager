@@ -56,47 +56,6 @@ This command builds:
 - Proto-generated code
 - AMD Device Config Manager docker
 
-### Building a Debian Package
-
-To build a Debian package for Ubuntu:
-
-```bash
-make pkg
-```
-
-This will create `.deb` packages in the `bin` directory.
-
-To run the debian on a MI300 node
-
-```bash
-sudo dpkg -i amdgpu-configmanager_22.04_amd64.deb
-dpkg -L amdgpu-configmanager
-
-sudo systemctl start amd-config-manager.service
-sudo journalctl -fu amd-config-manager.service
-```
-
-To restart the systemd service file
-
-```bash
-sudo systemctl start amd-config-manager.service
-```
-
-To stop the systemd service file
-
-```bash
-sudo systemctl stop amd-config-manager.service
-```
-
-To remove the debian package from the node
-
-```bash
-sudo dpkg --configure -a
-sudo dpkg --purge --force-remove-reinstreq amdgpu-configmanager
-dpkg -l | grep amdgpu-configmanager
-rm amdgpu-configmanager_22.04_amd64.deb
-```
-
 ### Build Docker images
 
 Build standard dcm image:

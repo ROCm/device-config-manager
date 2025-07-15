@@ -58,7 +58,7 @@ while getopts "hsn:p" option; do
     esac
 done
 
-VER=v1
+VER=rocm_dcm
 if [ -z $RELEASE ]; then
   echo "RELEASE is not set, return"
 else
@@ -76,7 +76,7 @@ IMAGE_DIR=$(pwd)/obj
 rm -rf $IMAGE_DIR
 mkdir -p $IMAGE_DIR
 
-IMAGE_URL="${DOCKER_REGISTRY}:${VER}"
+IMAGE_URL="${DOCKER_REGISTRY}/device-config-manager:${VER}"
 
 echo $TOP_DIR
 rm -rf $TOP_DIR/docker/smilib $TOP_DIR/docker/device-config-manager
