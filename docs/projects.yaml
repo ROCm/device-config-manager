@@ -1,0 +1,3 @@
+device-config-manager:
+  name: AMD Device Config Manager
+  url: https://dcgpu.docs.amd.com

@@ -1,0 +1,50 @@
+# holds all the docker container image builders required for components
+
+SMILIB_CONTAINER_WORKDIR := /usr/src/github.com/ROCm/device-config-manager/
+AMDMSMI_SRC_DIR := $(TOP_DIR)/
+AMDSMI_BUILD_DIR := $(TOP_DIR)/tools/smilib-builderimage/
+
+# this is usually required once for expediting the compilation
+
+# these create docker container images for the compilation of respective OS libraries 
+.PHONY: amdsmi-build
+amdsmi-build:
+ifeq ($(OS), RHEL9)
+	$(eval DOCKERFILE=$(AMDSMI_BUILD_DIR)/Dockerfile.rhel9.4)
+	$(eval BUILDER_IMAGE=$(AMDSMI_BUILDER_IMAGE))
+	$(eval BASE_IMAGE=${AMDSMI_BASE_IMAGE})
+else ifeq ($(OS), UBUNTU22)
+	$(eval DOCKERFILE=$(AMDSMI_BUILD_DIR)/Dockerfile.ubuntu22)
+	$(eval BUILDER_IMAGE=$(AMDSMI_BUILDER_UB22_IMAGE))
+	$(eval BASE_IMAGE=${AMDSMI_BASE_UBUNTU22})
+else ifeq ($(OS), UBUNTU24)
+	$(eval DOCKERFILE=$(AMDSMI_BUILD_DIR)/Dockerfile.ubuntu24)
+	$(eval BUILDER_IMAGE=$(AMDSMI_BUILDER_UB24_IMAGE))
+	$(eval BASE_IMAGE=${AMDSMI_BASE_UBUNTU24})
+else ifeq ($(OS), AZURE3)
+	$(eval DOCKERFILE=$(AMDSMI_BUILD_DIR)/Dockerfile.azure)
+	$(eval BUILDER_IMAGE=$(AMDSMI_BUILDER_AZURE_IMAGE))
+	$(eval BASE_IMAGE=${AMDSMI_BASE_AZURE})
+else
+	$(error unsupported os)
+endif
+	@echo "Building amdsmi $(OS), $(DOCKERFILE), $(BUILDER_IMAGE), $(BASE_IMAGE)"
+	@docker image rm $(BUILDER_IMAGE) || true
+	@docker build --build-arg BUILD_BASE_IMAGE=${BASE_IMAGE} \
+		-t $(BUILDER_IMAGE) . -f $(DOCKERFILE)
+
+.PHONY: amdsmi-build-rhel
+amdsmi-build-rhel:
+	OS=RHEL9 ${MAKE} amdsmi-build
+
+.PHONY: amdsmi-build-ub22
+amdsmi-build-ub22:
+	OS=UBUNTU22 ${MAKE} amdsmi-build
+
+.PHONY: amdsmi-build-ub24
+amdsmi-build-ub24:
+	OS=UBUNTU24 ${MAKE} amdsmi-build
+
+.PHONY: amdsmi-build-azure
+amdsmi-build-azure:
+	OS=AZURE3 ${MAKE} amdsmi-build
