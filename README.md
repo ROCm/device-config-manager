@@ -10,7 +10,7 @@ make default
 
 The default target creates a docker build container that packages the developer tools required to build all other targets in the Makefile and builds the `amdsmi-build-rhel` and `all` targets in this build container.
 The target generates a container image `docker.io/rocm/device-config-manager:rocm_dcm` which can be used to deploy the DCM pod in k8s environment.
-For more details, please refer to [_docs/developerguide.md_](https://github.com/ROCm/device-config-manager/blob/main/docs/developerguide.md#L1)
+For more details, please refer to [_docs/developerguide.md_](https://github.com/ROCm/device-config-manager/blob/v1.3.1/docs/developerguide.md#L1)
 
 ## Supported Platforms
   - Ubuntu 22.04, Ubuntu 24.04
