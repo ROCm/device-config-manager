@@ -6,7 +6,7 @@ external_projects = ["device-config-manager"]
 external_projects_current_project = "device-config-manager"
 
 project = "AMD Instinct Hub"
-version = "1.3.0"
+version = "1.3.1"
 release = version
 html_title = f"AMD Device Config Manager"
 author = "Advanced Micro Devices, Inc."
@@ -15,7 +15,8 @@ copyright = "Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved
 # Required settings
 html_theme = "rocm_docs_theme"
 html_theme_options = {
-    "flavor": "instinct"
+    "flavor": "instinct",
+    "repository_url": "https://github.com/rocm/device-metrics-exporter",
 }
 
 extensions = [
