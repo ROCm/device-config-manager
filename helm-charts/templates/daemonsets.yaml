@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}-amdgpu-device-config-manager
+  labels:
+    app: amdgpu-device-config-manager
+  {{- include "helm-charts.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: amdgpu-device-config-manager
+  template:
+    metadata:
+      labels:
+        app: amdgpu-device-config-manager
+    spec:
+      serviceAccountName: {{ include "helm-charts.fullname" . }}-config-manager
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - while [ ! -d /host-sys/class/kfd ] || [ ! -d /host-sys/module/amdgpu/drivers/
+          ]; do echo "amdgpu driver is not loaded "; sleep 2 ;done
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        name: driver-init
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /host-sys
+          name: sys-volume
+      containers:
+        - name: amdgpu-device-config-manager-container
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: DS_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          securityContext:
+            privileged: true
+          volumeMounts:
+          - mountPath: /dev
+            name: dev-volume
+          - mountPath: /sys
+            name: sys-volume
+          - mountPath: /lib/modules
+            name: libmodules
+          - mountPath: /var/lib/
+            name: health
+          - mountPath: /etc/config-manager/
+            name: {{ .Values.configMap }}-volume
+          workingDir: /root
+      tolerations:
+      - effect: NoExecute
+        key: amd-dcm
+        operator: Equal
+        value: up
+      volumes:
+      - hostPath:
+          path: /dev
+          type: Directory
+        name: dev-volume
+      - hostPath:
+          path: /sys
+          type: Directory
+        name: sys-volume
+      - hostPath:
+          path: /lib/modules
+          type: Directory
+        name: libmodules
+      - hostPath:
+          path: /var/lib/
+          type: Directory
+        name: health
+      - name: {{ .Values.configMap }}-volume
+        configMap:
+          name: {{ .Values.configMap }}

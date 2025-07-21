@@ -1,0 +1,12 @@
+platform: k8s
+
+#optional parameter
+nodeSelector: {}
+
+image:
+  repository: rocm/device-config-manager
+  tag: v1.3.1
+  pullPolicy: Always
+
+# specify configmap name (mandatory)
+configMap: "dcm-st"

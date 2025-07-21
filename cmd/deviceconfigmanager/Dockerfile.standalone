@@ -1,0 +1,19 @@
+# Make sure to specify DCM_BASE_IMAGE build-arg to build for ubuntu24.04 noble case
+ARG DCM_BASE_IMAGE=ubuntu22.04
+FROM ${DCM_BASE_IMAGE}
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CGO_ENABLED=1
+ENV GOOS=linux
+ENV GOARCH=amd64
+
+# Install Go (you can replace the version as needed)
+RUN curl -fsSL https://golang.org/dl/go1.23.4.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
+    ln -s /usr/local/go/bin/go /usr/bin/go
+
+RUN mkdir -p /home/amd/tools/
+ADD ./entrypoint.sh /home/amd/tools/entrypoint.sh
+RUN chmod +x /home/amd/tools/entrypoint.sh
+
+ENTRYPOINT ["/home/amd/tools/entrypoint.sh"]
