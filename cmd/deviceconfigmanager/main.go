@@ -30,6 +30,7 @@ var (
 
 func main() {
 
+	log.Printf("####### DEVICE CONFIG MANAGER #######")
 	log.Printf("Version : %v", Version)
 	log.Printf("BuildDate: %v", BuildDate)
 	log.Printf("GitCommit: %v", GitCommit)
@@ -40,6 +41,8 @@ func main() {
 		log.Println("Not running inside a Kubernetes pod")
 		<-make(chan struct{})
 	}
+
+	log.Printf("#####################################")
 	//Read profile from node labeller
 	selectedProfile, err := configmanager.GetPartitionProfile()
 	if err != nil {
