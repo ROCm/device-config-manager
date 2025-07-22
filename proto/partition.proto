@@ -1,0 +1,63 @@
+//
+// Copyright(C) Advanced Micro Devices, Inc. All rights reserved.
+//
+// You may not use this software and documentation (if any) (collectively,
+// the "Materials") except in compliance with the terms and conditions of
+// the Software License Agreement included with the Materials or otherwise as
+// set forth in writing and signed by you and an authorized signatory of AMD.
+// If you do not have a copy of the Software License Agreement, contact your
+// AMD representative for a copy.
+//
+// You agree that you will not reverse engineer or decompile the Materials,
+// in whole or in part, except as allowed by applicable law.
+//
+// THE MATERIALS ARE DISTRIBUTED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR
+// REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+//
+
+
+//----------------------------------------------------------------------------
+///
+/// \file
+/// AMD Configs Manager fields
+///
+//----------------------------------------------------------------------------
+
+
+syntax = "proto3";
+option go_package = "gen/partition"; 
+package partition;
+
+enum GPUComputePartitionType {
+    GPU_COMPUTE_TYPE_PARTITION_SPX      = 0;
+    GPU_COMPUTE_TYPE_PARTITION_DPX      = 1;
+    GPU_COMPUTE_TYPE_PARTITION_QPX      = 2;
+    GPU_COMPUTE_TYPE_PARTITION_CPX      = 3;
+}
+
+enum GPUMemoryPartitionType {
+    GPU_MEMORY_TYPE_PARTITION_NPS1      = 0;
+    GPU_MEMORY_TYPE_PARTITION_NPS4      = 1;
+    GPU_MEMORY_TYPE_PARTITION_NPS2      = 2;
+}
+
+message ProfileConfig {
+    string ComputePartition = 1;
+    string MemoryPartition  = 2;
+    uint32 NumGPUsAssigned  = 3;
+}
+
+message SkippedGPUs {
+    repeated uint32 Id = 1;
+}
+
+message GPUConfigProfile {
+    SkippedGPUs Filters = 1;
+    repeated ProfileConfig Profiles = 2;
+}
+
+//proto for gpu-config-profiles
+message GPUConfigProfiles {
+    // list of all GPUPartitionType to be exported
+    map<string, GPUConfigProfile> ProfilesList = 1;
+}
