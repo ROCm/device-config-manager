@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dcm-st
+  namespace: kube-amd-gpu
+data:
+  config.json: |
+    {
+      "gpu-config-profiles":
+      {
+          "default":
+          {
+              "skippedGPUs": {
+                  "ids": []
+              },
+              "profiles": [
+                  {
+                      "computePartition": "CPX", 
+                      "memoryPartition": "NPS1",
+                      "numGPUsAssigned": 1
+                  }
+              ]
+          },
+          "profile-1":
+          { 
+              "skippedGPUs": {
+                  "ids": [0, 1, 2]
+              },
+              "profiles": [
+                  {
+                      "computePartition": "CPX",
+                      "memoryPartition": "NPS1",
+                      "numGPUsAssigned": 8
+                  }          
+              ]
+          }
+      }
+    }
+
