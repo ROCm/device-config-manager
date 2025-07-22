@@ -6,7 +6,7 @@ external_projects = ["device-config-manager"]
 external_projects_current_project = "device-config-manager"
 
 project = "AMD Instinct Hub"
-version = "1.3.1"
+version = "main"
 release = version
 html_title = f"AMD Device Config Manager"
 author = "Advanced Micro Devices, Inc."
