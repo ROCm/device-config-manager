@@ -113,9 +113,6 @@ data:
         },
         "invalmemorytype":
         {
-            "skippedGPUs": {
-                "ids": []
-            },
             "profiles": [
                 {
                     "computePartition": "CPX",
@@ -131,9 +128,6 @@ data:
         },
         "invalmemorytypecombinationNPS1NPS4":
         {
-            "skippedGPUs": {
-                "ids": [3, 7]
-            },
             "profiles": [
                 {
                     "computePartition": "CPX",
@@ -166,9 +160,6 @@ data:
         },
         "homogenous":
         {
-            "skippedGPUs": {
-                "ids": []
-            },
             "profiles": [
 
                 {
@@ -180,9 +171,6 @@ data:
         },
         "highgpucount_mostly_invalid":
         {
-            "skippedGPUs": {
-                "ids": []
-            },
             "profiles": [
 
                 {
@@ -194,9 +182,6 @@ data:
         },
         "nps2":
         {
-            "skippedGPUs": {
-                "ids": []
-            },
             "profiles": [
 
                 {
