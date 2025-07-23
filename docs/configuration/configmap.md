@@ -4,7 +4,7 @@ When deploying AMD Device Config Manager on Kubernetes, a `ConfigMap` is deploye
 
 ## Configuration parameters
 
-- Please find an example config map in [_example/configmap.yaml_](https://github.com/ROCm/device-config-manager/blob/main/example/configmap.yaml#L1)
+- Please find an example config map in [_example/configmap.yaml_](https://github.com/ROCm/device-config-manager/blob/v1.3.1/example/configmap.yaml#L1)
 - Make sure to apply the config map in the configmanager namespace before deploying the DCM pod.
 - Example config map and it's meaning
 

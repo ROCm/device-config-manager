@@ -1,4 +1,0 @@
-#!/bin/bash
-systemctl stop amd-config-manager.service
-
-systemctl disable amd-config-manager.service
