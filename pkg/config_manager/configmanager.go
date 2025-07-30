@@ -39,6 +39,7 @@ import (
 	"github.com/ROCm/device-config-manager/pkg/amdgpu/k8sclient"
 	"github.com/ROCm/device-config-manager/pkg/config_manager/globals"
 	types "github.com/ROCm/device-config-manager/pkg/config_manager/interface"
+	utils "github.com/ROCm/device-config-manager/pkg/partition/utils"
 	"github.com/fsnotify/fsnotify"
 	log_e "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -754,6 +755,20 @@ func RetryPartition(ctx context.Context, selectedProfile string) {
 	defer wg.Done()
 	expiration := time.Now().Add(30 * time.Minute)
 	count := 1
+	var services partition_pb.GPUClientSystemdServices
+	file, _ := ioutil.ReadFile(globals.JsonFilePath)
+	err := json.Unmarshal(file, &services)
+	if err != nil {
+		log_e.Errorf("Failed to unmarshal JSON: %v", err)
+		partStatus.Reason = "Invalid JSON inside configmap"
+		generateK8sEvent(errors.New("invalid json in configmap"), globals.K8EventInvalidJSONInConfigMap, partStatus)
+		err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+		if err != nil {
+			log.Printf("Error adding status node label: %s\n", err.Error())
+		}
+		return
+	}
+	serviceList := services.List.Names
 
 	for {
 		select {
@@ -768,9 +783,11 @@ func RetryPartition(ctx context.Context, selectedProfile string) {
 		if time.Now().After(expiration) {
 			generateK8sEvent(errors.New("partition failed"), globals.K8EventPartitionFailed, partStatus)
 			log.Println("Retry loop expired after retrying for 30 mins")
+			utils.StartServiceHandler(serviceList)
 			return
 		}
 
+		utils.StopServiceHandler(serviceList)
 		log.Printf("Calling PartitionGPU...\n")
 
 		if err := PartitionGPU(selectedProfile); err != nil {
@@ -792,6 +809,7 @@ func RetryPartition(ctx context.Context, selectedProfile string) {
 			}
 		} else {
 			log.Println("PartitionGPU executed successfully")
+			utils.StartServiceHandler(serviceList)
 			return
 		}
 	}
