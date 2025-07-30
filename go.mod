@@ -6,6 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/mittwald/go-helm-client v0.12.16
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0

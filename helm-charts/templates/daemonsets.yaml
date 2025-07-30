@@ -63,6 +63,15 @@ spec:
             name: health
           - mountPath: /etc/config-manager/
             name: {{ .Values.configMap }}-volume
+          - mountPath: /etc/systemd
+            name: etc-systemd
+          - mountPath: /run/systemd
+            name: run-systemd
+          - mountPath: /usr/lib/systemd
+            name: usr-lib-systemd
+          - mountPath: /var/run/dbus
+            name: var-run-dbus
+
           workingDir: /root
       tolerations:
       - effect: NoExecute
@@ -86,6 +95,22 @@ spec:
           path: /var/lib/
           type: Directory
         name: health
+      - hostPath:
+          path: /etc/systemd
+          type: Directory
+        name: etc-systemd
+      - hostPath:
+          path: /run/systemd
+          type: Directory
+        name: run-systemd
+      - hostPath:
+          path: /usr/lib/systemd
+          type: Directory
+        name: usr-lib-systemd
+      - hostPath:
+          path: /var/run/dbus
+          type: Directory
+        name: var-run-dbus
       - name: {{ .Values.configMap }}-volume
         configMap:
           name: {{ .Values.configMap }}
