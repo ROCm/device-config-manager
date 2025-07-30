@@ -16,7 +16,7 @@ ARG AMDGPU_VERSION=6.4
 ADD rhelrepofiles/amdgpu.repo /etc/yum.repos.d/amdgpu.repo 
 ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo
 
-RUN microdnf clean all && microdnf install -y sudo procps file libcap-devel libdrm-amdgpu vim net-tools kmod && microdnf install -y amd-smi-lib && rm -rf /var/cache/yum && rm -rf /var/cache/dnf && microdnf clean all
+RUN microdnf clean all && microdnf install -y sudo procps file libcap-devel libdrm-amdgpu vim net-tools kmod iptables-libs dbus dbus-tools && microdnf install -y amd-smi-lib && rm -rf /var/cache/yum && rm -rf /var/cache/dnf && microdnf clean all
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/amd/bin/:/opt/rocm/bin/
 RUN mkdir -p /home/amd/bin/
