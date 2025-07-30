@@ -61,3 +61,13 @@ message GPUConfigProfiles {
     // list of all GPUPartitionType to be exported
     map<string, GPUConfigProfile> ProfilesList = 1;
 }
+
+// structure contains a list of service names
+message GPUServiceList {
+  repeated string names = 1;
+}
+
+// proto embedding the structured list
+message GPUClientSystemdServices {
+  GPUServiceList list = 1;
+}
