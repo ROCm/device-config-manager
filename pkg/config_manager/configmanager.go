@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
 	"sync"
 	"time"
@@ -49,6 +50,7 @@ import (
 
 var kc *k8sclient.K8sClient = k8sclient.NewClient(context.Background())
 var nodeName string = k8sclient.GetNodeName()
+var kmmDriverEnabled = k8sclient.IsKMMDriverEnabled()
 
 var sockets []C.amdsmi_socket_handle
 var totalGPUCount int
@@ -366,6 +368,47 @@ func populateGPUEventStatus(gpu_id int, partitionType string, status string, mes
 	partStatus.GPUStatus[idx].Message = message
 }
 
+// retryMemoryPartitionWithWait attempts to recover the memory partition by reloading KMM driver,
+// wait for the memory partition to match the expected value, and updates partition_failed accordingly.
+func retryMemoryPartitionWithWait(processor_handle C.amdsmi_processor_handle, expectMemoryPartition string, nodeName string, kc *k8sclient.K8sClient) bool {
+	log.Println("Attempting memoryPartitionHandling as recovery step...")
+	if !memoryPartitionHandling() {
+		log.Println("Memory partition handling failed, cannot recover memory partition.")
+		return true // partition_failed = true
+	}
+
+	log.Println("Waiting up to 3 minutes for memory partition to match expected value...")
+	success := false
+	timeout := time.After(globals.KMMDriverRecoveryTimeout)
+	ticker := time.NewTicker(globals.KMMDriverRecoveryCheckInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-timeout:
+			log.Println("Timeout waiting for recovering memory partition to match expected value.")
+			success = false
+			break
+		case <-ticker.C:
+			if getCurrentGPUMemoryPartition(processor_handle) == expectMemoryPartition {
+				log.Println("Memory partition now matches expected value.")
+				success = true
+				break
+			}
+		}
+		if success {
+			break
+		}
+	}
+	if success {
+		log.Println("Memory partition successful after recovery wait.")
+		log.Printf("Updated Memory Type %v\n", expectMemoryPartition)
+		return false // partition_failed = false
+	} else {
+		log_e.Errorf("Memory partition did not match expected value after recovery wait.")
+		return true // partition_failed = true
+	}
+}
+
 func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile) {
 
 	log.Print("AMD SMI Initialized successfully.")
@@ -473,11 +516,18 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 					if ret_n == C.AMDSMI_STATUS_BUSY {
 						log_e.Errorf("There might be existing pods/daemonsets on the cluster keeping the GPU resource busy, please remove them and retry. Pods list on this node: %v", podList)
 					}
-					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
-					if err != nil {
-						log.Printf("Error adding status node label: %s\n", err.Error())
-					}
+					// when KMM driver is being used
+					// try to recover the memory partition by reloading KMM driver
 					partition_failed = true
+					if nodeName != "" && kmmDriverEnabled {
+						partition_failed = retryMemoryPartitionWithWait(processor_handle, currentMemory, nodeName, kc)
+					}
+					if partition_failed {
+						err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+						if err != nil {
+							log.Printf("Error adding status node label: %s\n", err.Error())
+						}
+					}
 				} else {
 					log.Println("Memory partition successful !!")
 					log.Printf("Updated Memory Type %v\n", updatedMemory)
@@ -768,7 +818,11 @@ func RetryPartition(ctx context.Context, selectedProfile string) {
 		}
 		return
 	}
-	serviceList := services.List.Names
+
+	serviceList := []string{}
+	if services.List != nil {
+		serviceList = services.List.Names
+	}
 
 	for {
 		select {
@@ -843,4 +897,36 @@ func TriggerRetryLoop(selectedProfile string, funcname string) {
 	default:
 		log.Println("Retry loop already pending, ignoring trigger")
 	}
+}
+
+func memoryPartitionHandling() bool {
+	log.Println("recovering memory partition for KMM driver.")
+
+	// Step 1: Execute modprobe -rv amdgpu with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), globals.KMMDriverRecoveryTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "modprobe", "-rv", "amdgpu")
+	output, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Printf("Timeout exceeded while running 'modprobe -rv amdgpu'")
+		return false
+	}
+	if err != nil {
+		log.Printf("Error recover memory partition by running 'modprobe -rv amdgpu': %v, output: %s", err, string(output))
+		return false
+	}
+
+	// Step 2: Delete NodeModulesConfig with name=nodeName in the same namespace
+	if kc != nil {
+		err := kc.DeleteNodeModulesConfig(nodeName)
+		if err != nil {
+			log.Printf("Error recover memory partition by deleting NodeModulesConfig %s: %v", nodeName, err)
+			return false
+		}
+	} else {
+		log.Printf("K8s client is not initialized, cannot recover memory partition")
+		return false
+	}
+
+	return true
 }
