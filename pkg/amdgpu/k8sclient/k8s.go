@@ -21,11 +21,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -69,6 +72,16 @@ func (k *K8sClient) reConnect() error {
 		return k.init()
 	}
 	return nil
+}
+
+func IsKMMDriverEnabled() bool {
+	if os.Getenv("KMM_DRIVER_ENABLED") != "" {
+		if strings.ToLower(os.Getenv("KMM_DRIVER_ENABLED")) == "true" {
+			return true
+		}
+		return false
+	}
+	return false
 }
 
 func GetNodeName() string {
@@ -135,6 +148,44 @@ func (k *K8sClient) GetNodeInformer(nodeName string) cache.SharedIndexInformer {
 	nodeInformer := factory.Core().V1().Nodes().Informer()
 
 	return nodeInformer
+}
+
+func (k *K8sClient) DeleteNodeModulesConfig(nodeName string) error {
+	k.reConnect()
+	k.Lock()
+	defer k.Unlock()
+	ctx, cancel := context.WithCancel(k.ctx)
+	defer cancel()
+
+	if nodeName == "" {
+		log.Printf("k8s client got empty node name, skip deleting NodeModulesConfig")
+		return fmt.Errorf("k8s client received empty node name")
+	}
+
+	// Use dynamic client to delete the custom resource
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Printf("failed to get in-cluster config: %v", err)
+		return err
+	}
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Printf("failed to create dynamic client: %v", err)
+		return err
+	}
+	gvr := schema.GroupVersionResource{
+		Group:    "kmm.sigs.x-k8s.io",
+		Version:  "v1beta1",
+		Resource: "nodemodulesconfigs",
+	}
+	err = dynClient.Resource(gvr).Delete(ctx, nodeName, metav1.DeleteOptions{})
+	if err != nil {
+		log.Printf("failed to delete NodeModulesConfig for node %s, err: %v", nodeName, err)
+		return err
+	}
+
+	log.Printf("NodeModulesConfig for node %s deleted successfully", nodeName)
+	return nil
 }
 
 func (k *K8sClient) CreateEvent(evtObj *v1.Event) error {
