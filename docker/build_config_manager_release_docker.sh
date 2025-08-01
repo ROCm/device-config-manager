@@ -86,7 +86,7 @@ sleep 5
 cp -r $TOP_DIR/assets/amd_smi_lib/x86_64/RHEL9/lib $TOP_DIR/docker/smilib
 cp $TOP_DIR/bin/device-config-manager-$UBUNTU_VERSION $TOP_DIR/docker/device-config-manager
 
-if [ $PUBLISH_IMAGE == 1 ]; then
+if [ "$PUBLISH_IMAGE" == "1" ]; then
     echo "publishing dcm image to $IMAGE_URL"
     docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL -f Dockerfile && docker push $IMAGE_URL
     if [ $? -eq 0 ]; then
@@ -98,7 +98,7 @@ if [ $PUBLISH_IMAGE == 1 ]; then
 else
     echo "building dcm image to $DOCKER_IMAGE_NAME"
     docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL -f Dockerfile && docker save -o config-manager-$VER.tar $IMAGE_URL
-    if [ $? -eq 0 ]; then
+    if [ "$?" -eq "0" ]; then
         gzip config-manager-$VER.tar
         mv config-manager-$VER.tar.gz config-manager-$VER.tgz
     else
