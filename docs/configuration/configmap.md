@@ -50,7 +50,10 @@ data:
                   }          
               ]
           }
-      }
+      },
+      "gpuClientSystemdServices": {
+           "names": ["amd-metrics-exporter", "gpuagent"]
+       }
     }
 
 ```
@@ -61,6 +64,7 @@ data:
 - `computePartition` compute partition type
 - `memoryPartition` memory partition type
 - `numGPUsAssigned` number of GPUs to be partitioned on the node
+- `gpuClientSystemdServices` list of systemd services to stop and restart before partitioning
 - NOTE: User can also create a heterogenous partitioning config profile by mentioning different sets, each set having info about compute/memory types and the number of GPUs to have that partition (refer `default` profile example)
    
 ## Configmap Profile Checks
