@@ -48,9 +48,9 @@ func controlService(action, serviceName string) error {
 }
 
 func StartService(name string) error {
-	if UnitExists(name) {
-		log.Printf("Service %v already exists. Skipping restart!!", name)
-		err := errors.New("service already exists")
+	if UnitExists(name) && CheckUnitStatusHandler(name, "active") {
+		log.Printf("Service %v already exists and in active state. Skipping restart!!", name)
+		err := errors.New("service already exists and in active state")
 		return err
 	}
 	return controlService("Start", name)
