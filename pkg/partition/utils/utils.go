@@ -110,21 +110,28 @@ func StopServiceHandler(services []string) {
 		if !strings.HasSuffix(svc, ".service") {
 			svc += ".service"
 		}
-		status := CheckUnitStatus(svc)
-		PreStateDB[svc] = ServicePreState{
-			Name:      svc,
-			State:     status,
-			Timestamp: time.Now(),
-			Comment:   fmt.Sprintf("Service was %s before StopService", status),
+		currStatus := CheckUnitStatus(svc)
+
+		// write the previous service state only if it is not already recorded
+		// this is to avoid overwriting the state during the partition retry
+		if _, ok := PreStateDB[svc]; !ok {
+			PreStateDB[svc] = ServicePreState{
+				Name:      svc,
+				State:     currStatus,
+				Timestamp: time.Now(),
+				Comment:   fmt.Sprintf("Service was %s before StopService", currStatus),
+			}
 		}
 
-		preState := PreStateDB[svc]
-		if preState.State != "active" {
-			log.Printf("Service %s is not active (status: %s), skipping stop", svc, status)
+		// when determining whether to stop the service
+		// we only want to look at the current state, not the pre-state
+		if currStatus != "active" {
+			log.Printf("Service %s is not active (status: %s), skipping stop", svc, currStatus)
 			continue
 		} else {
-			log.Printf("Service %s current state is active (status: %s), attempting stop", svc, preState.State)
+			log.Printf("Service %s current state is active (status: %s), attempting stop", svc, currStatus)
 		}
+
 		log.Printf("Stopping service: %s", svc)
 		if err := StopService(svc); err != nil {
 			log.Printf("Warning: Failed to stop service %s: %v\n", svc, err)
