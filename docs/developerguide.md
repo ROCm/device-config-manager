@@ -30,7 +30,7 @@ make default
 ```
 
 The default target creates a docker build container that packages the developer tools required to build all other targets in the Makefile and builds the `amdsmi-build-rhel` and `all` targets in this build container.
-The target generates a container image `docker.io/rocm/device-config-manager:rocm_dcm` which can be used to deploy the DCM pod in k8s environment.
+The target generates a container image `docker.io/rocm/device-config-manager:rocm_dcm_v131` which can be used to deploy the DCM pod in k8s environment.
 
 ## Building Components
 

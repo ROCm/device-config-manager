@@ -58,7 +58,7 @@ while getopts "hsn:p" option; do
     esac
 done
 
-VER=rocm_dcm
+VER=rocm_dcm_v131
 if [ -z $RELEASE ]; then
   echo "RELEASE is not set, return"
 else
