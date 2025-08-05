@@ -1,0 +1,44 @@
+# holds all the compilation targets from source
+
+#compiles the library code from source on respective OS platforms
+.PHONY: amdsmi-compile
+amdsmi-compile:
+ifeq ($(OS), RHEL9)
+	$(eval BUILD_IMAGE_OS=$(AMDSMI_BUILDER_IMAGE))
+else ifeq ($(OS), UBUNTU22)
+	$(eval BUILD_IMAGE_OS=$(AMDSMI_BUILDER_UB22_IMAGE))
+else ifeq ($(OS), UBUNTU24)
+	$(eval BUILD_IMAGE_OS=$(AMDSMI_BUILDER_UB24_IMAGE))
+else ifeq ($(OS), AZURE3)
+	$(eval BUILD_IMAGE_OS=$(AMDSMI_BUILDER_AZURE_IMAGE))
+else
+	$(error unsupported os)
+endif
+	@echo "Building amdsmi library for $(BUILD_IMAGE_OS)"
+	@docker run --rm -it --privileged \
+		-e "USER_NAME=$(shell whoami)" \
+		-e "USER_UID=$(shell id -u)" \
+		-e "USER_GID=$(shell id -g)" \
+		-e "BRANCH=$(AMDSMI_BRANCH)" \
+		-e "COMMIT=$(AMDSMI_COMMIT)" \
+	    --name smibuild -v $(AMDMSMI_SRC_DIR):$(SMILIB_CONTAINER_WORKDIR) \
+		-w $(SMILIB_CONTAINER_WORKDIR) $(BUILD_IMAGE_OS)
+	@echo 'Copying amdsmi assets to ${TOP_DIR}/build/assets/${OS}'
+	@mkdir -p ${TOP_DIR}/build/assets/${OS}/
+	@cp -rvf ${TOP_DIR}/libamdsmi/build/exporterout ${TOP_DIR}/build/assets/${OS}/
+
+.PHONY: amdsmi-compile-rhel
+amdsmi-compile-rhel:
+	OS=RHEL9 ${MAKE} amdsmi-compile
+
+.PHONY: amdsmi-compile-ub22
+amdsmi-compile-ub22:
+	OS=UBUNTU22 ${MAKE} amdsmi-compile
+
+.PHONY: amdsmi-compile-ub24
+amdsmi-compile-ub24:
+	OS=UBUNTU24 ${MAKE} amdsmi-compile
+
+.PHONY: amdsmi-compile-azure
+amdsmi-compile-azure:
+	OS=AZURE3 ${MAKE} amdsmi-compile
