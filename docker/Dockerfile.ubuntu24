@@ -1,0 +1,58 @@
+#########################
+# Stage 1: Extract updated libraries from Ubuntu Noble
+#########################
+FROM ubuntu:24.04 AS noble-libs-img
+
+# Install libstdc++ (and any other packages if needed) so that we have the correct libraries.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a folder with the updated versions of glibc and libstdc++.
+# (Note: glibc is usually in /lib/x86_64-linux-gnu and libstdc++ in /usr/lib/x86_64-linux-gnu in Ubuntu.)
+RUN mkdir -p /noble-libs && \
+    cp /lib/x86_64-linux-gnu/libc.so.6 /noble-libs/ && \
+    cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /noble-libs/ && \
+    cp /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /noble-libs/
+
+#########################
+# Stage 2: Build the runtime container based on UBI minimal
+#########################
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4
+
+LABEL name="device-config-manager" \ 
+    maintainer="nikhil.komarla@amd.com,sriram.ravishankar@amd.com,shrey.ajmera@amd.com,yan.sun3@amd.com" \
+    vendor="Advanced Micro Devices, Inc." \
+    version="latest" \
+    release="latest" \
+    OS="registry.access.redhat.com/ubi9/ubi-minimal:9.4" \
+    summary="Device Config Manager (DCM) manages AMD device configurations, starting with GPU partitioning, and uses a Kubernetes config-map associated with a DCM daemonset." \
+    description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
+
+# unused for now revisit
+ARG ROCM_VERSION=6.4
+ARG AMDGPU_VERSION=6.4
+
+ADD rhelrepofiles/amdgpu.repo /etc/yum.repos.d/amdgpu.repo 
+ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo
+
+RUN microdnf clean all && microdnf install -y sudo procps file libcap-devel libdrm-amdgpu vim net-tools kmod && microdnf install -y amd-smi-lib && rm -rf /var/cache/yum && rm -rf /var/cache/dnf && microdnf clean all
+
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/amd/bin/:/opt/rocm/bin/
+RUN mkdir -p /home/amd/bin/
+RUN mkdir -p /home/amd/lib/
+RUN mkdir -p /home/amd/lib-updated/
+RUN mkdir -p /home/amd/tools/
+
+# Copy the updated libraries from Ubuntu Noble stage
+COPY --from=noble-libs-img /noble-libs/ /home/amd/lib-updated/
+
+ADD ./smilib/ /home/amd/lib-updated/
+ADD ./device-config-manager /home/amd/bin/server
+
+ADD ./entrypoint_noble.sh /home/amd/tools/entrypoint.sh
+RUN chmod +x /home/amd/tools/entrypoint.sh
+
+ADD LICENSE /licenses/LICENSE
+
+ENTRYPOINT ["/home/amd/tools/entrypoint.sh"]
