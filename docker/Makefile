@@ -1,4 +1,3 @@
-DOCKER_REGISTRY ?= registry.test.pensando.io:5000/device-config-manager
 IMAGE_NAME ?= dcm
 IMAGE_TAG_BASE ?= $(DOCKER_REGISTRY)/$(IMAGE_NAME)
 # This is the default tag of all images made by this Makefile.

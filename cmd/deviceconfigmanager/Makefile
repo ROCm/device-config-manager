@@ -1,4 +1,5 @@
-DCM_BUILD_DOCKER_IMG := registry.test.pensando.io:5000/dcm-build
+$(info DOCKER_REGISTRY is $(DOCKER_REGISTRY))
+DCM_BUILD_DOCKER_IMG := ${DOCKER_REGISTRY}/dcm-build
 ifeq ($(UBUNTU_VERSION), jammy)
     BASE_IMAGE=$(AMDSMI_BUILDER_UB22_IMAGE)
 else ifeq ($(UBUNTU_VERSION), noble)

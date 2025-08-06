@@ -375,6 +375,11 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 	var gpu_id int
 	var partition_err_reason string
 
+	if profile.Filters == nil {
+		profile.Filters = &partition_pb.SkippedGPUs{}
+		profile.Filters.Id = []uint32{}
+	}
+
 	log.Print("Total number of GPUs in the node ", totalGPUCount)
 	log.Printf("Skipped GPU IDs for partitioning %v", profile.Filters.Id)
 	profiles := profile.Profiles

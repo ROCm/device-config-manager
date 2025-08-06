@@ -37,8 +37,7 @@ export RHEL_REPO_URL
 
 TOP_DIR := $(PWD)
 HELM_CHARTS_DIR := $(TOP_DIR)/helm-charts
-PKG_LIB_PATH := ${TOP_DIR}/debian/usr/local/
-ASSETS_PATH :=${TOP_DIR}/assets
+
 # 22.04 - jammy
 # 24.04 - noble
 UBUNTU_VERSION ?= jammy
@@ -49,18 +48,6 @@ UBUNTU_VERSION_NUMBER = 24.04
 UBUNTU_LIBDIR = UBUNTU24
 endif
 
-ifeq ($(RELEASE),)
-DEBIAN_VERSION := "1.3.0"
-else
-DEBIAN_VERSION := $(shell echo "$(RELEASE)" | sed 's/^.//')
-endif
-
-BUILD_PKG_PATH = ${TOP_DIR}/build/${UBUNTU_LIBDIR}
-DEBIAN_CONTROL = ${TOP_DIR}/debian/DEBIAN/control
-BUILD_VER_ENV = ${DEBIAN_VERSION}~$(UBUNTU_VERSION_NUMBER)
-
-AMD_SMI_LIBS := ${ASSETS_PATH}/amd_smi_lib/x86_64/${UBUNTU_LIBDIR}/lib
-PKG_PATH := ${TOP_DIR}/debian/usr/local/bin
 
 # External repo builders
 AMDSMI_BASE_IMAGE ?= registry.access.redhat.com/ubi9/ubi:9.4
@@ -71,10 +58,10 @@ AMDSMi_BASE_AZURE ?= mcr.microsoft.com/azurelinux/base/core:3.0
 #Builder images can be built using targets make amdsmi-build-ub22, 24 etc
 #Push them to internal registry as changes are needed
 #These builder images are used rather than BASE images to prevent building the same image redundantly
-AMDSMI_BUILDER_IMAGE ?= amdsmi-builder-dcm:rhel9
-AMDSMI_BUILDER_UB22_IMAGE ?= amdsmi-builder-dcm:ub22
-AMDSMI_BUILDER_UB24_IMAGE ?= amdsmi-builder-dcm:ub24
-AMDSMI_BUILDER_AZURE_IMAGE ?= amdsmi-builder-dcm:azure
+AMDSMI_BUILDER_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:rhel9
+AMDSMI_BUILDER_UB22_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:ub22
+AMDSMI_BUILDER_UB24_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:ub24
+AMDSMI_BUILDER_AZURE_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:azure
 
 # amdsmi builder base images and tags
 export AMDSMI_BASE_IMAGE
@@ -144,7 +131,7 @@ docker-compile:
 		-v $(HOME)/.ssh:/home/$(shell whoami)/.ssh \
 		-w $(CONTAINER_WORKDIR) \
 		$(BUILD_CONTAINER) \
-		bash -c "cd $(CONTAINER_WORKDIR) && source ~/.bashrc && git config --global --add safe.directory $(CONTAINER_WORKDIR) && make all"
+		bash -c "cd $(CONTAINER_WORKDIR) && source ~/.bashrc && git config --global --add safe.directory $(CONTAINER_WORKDIR) && make amdsmi-build-ub22 && make all"
 
 # create development build container only if there is changes done on
 # tools/base-image/Dockerfile
@@ -220,31 +207,6 @@ lint: golangci-lint ## Run golangci-lint against code.
 		exit 1; \
 	fi
 	$(GOLANGCI_LINT) run -v --timeout 5m0s
-
-pkg-clean:
-	rm -rf ${TOP_DIR}/bin/*.deb
-
-.PHONY: pkg
-pkg: pkg-clean
-	${MAKE} dcm
-	@echo "Building debian for $(BUILD_VER_ENV)"
-	@echo "Build path ${BUILD_PKG_PATH}"
-	#copy precompiled libs
-	mkdir -p ${PKG_LIB_PATH}
-	cp -rvf ${AMD_SMI_LIBS}/ ${PKG_LIB_PATH}
-	mkdir -p ${PKG_PATH}
-	cp -vf $(TOP_DIR)/bin/device-config-manager-$(UBUNTU_VERSION) ${PKG_PATH}/
-	#strip the dcm gobin to reduce the debian package size
-	strip ${PKG_PATH}/device-config-manager-$(UBUNTU_VERSION)
-	cd ${TOP_DIR}
-	sed -i "s/BUILD_VER_ENV/$(BUILD_VER_ENV)/g" $(DEBIAN_CONTROL)
-	dpkg-deb -Zxz --build debian ${TOP_DIR}/bin
-	#remove copied files
-	rm -rf ${PKG_LIB_PATH}
-	# revert the dynamic version set file
-	git checkout $(DEBIAN_CONTROL)
-	# rename for internal build
-	mv -vf ${TOP_DIR}/bin/amdgpu-configmanager_*~${UBUNTU_VERSION_NUMBER}_amd64.deb ${TOP_DIR}/bin/amdgpu-configmanager_${UBUNTU_VERSION_NUMBER}_amd64.deb
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
