@@ -3,7 +3,7 @@ entries:
   device-config-manager-charts:
   - apiVersion: v2
     appVersion: v1.3.1
-    created: "2025-08-19T12:37:18.348658635Z"
+    created: "2025-08-19T12:50:23.876791127Z"
     description: A Helm chart for AMD GPU Device Config Manager
     digest: ecb8c4d405ba6f3e6a5d91f7596eb441cc882ab335ec28636886f3a41a4ff769
     maintainers:
@@ -14,4 +14,17 @@ entries:
     urls:
     - https://rocm.github.io/device-config-manager/charts/device-config-manager-charts-v1.3.1.tgz
     version: v1.3.1
-generated: "2025-08-19T12:37:18.348125157Z"
+  - apiVersion: v2
+    appVersion: v1.3.0
+    created: "2025-08-19T12:50:23.876517903Z"
+    description: A Helm chart for AMD GPU Device Config Manager
+    digest: 9c1d9d9a9c70747219d5e6319c3f1e1f21f539e984d597cf6ca7f93666ba1eb9
+    maintainers:
+    - email: nkomarla@amd.com
+      name: Nikhil S K
+    name: device-config-manager-charts
+    type: application
+    urls:
+    - https://rocm.github.io/device-config-manager/charts/device-config-manager-charts-v1.3.0.tgz
+    version: v1.3.0
+generated: "2025-08-19T12:50:23.875982959Z"
