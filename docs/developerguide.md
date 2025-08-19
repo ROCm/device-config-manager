@@ -78,8 +78,8 @@ cd /home/amd/user/device-config-manager/helm-charts; helm lint
 
 1 chart(s) linted, 0 chart(s) failed
 helm package helm-charts/ --destination ./helm-charts
-Successfully packaged chart and saved it to: helm-charts/device-config-manager-charts-v1.0.0.tgz
-cd /home/amd/user/device-config-manager/helm-charts; helm install amd-gpu-operator ./device-config-manager-charts-v1.0.0.tgz -n kube-amd-gpu --create-namespace -f values.yaml
+Successfully packaged chart and saved it to: helm-charts/device-config-manager-charts-v1.3.0.tgz
+cd /home/amd/user/device-config-manager/helm-charts; helm install amd-gpu-operator ./device-config-manager-charts-v1.3.0.tgz -n kube-amd-gpu --create-namespace -f values.yaml
 NAME: amd-gpu-operator
 LAST DEPLOYED: Thu Apr 3 04:57:29 2025
 NAMESPACE: kube-amd-gpu
@@ -136,6 +136,7 @@ make amdsmi-compile
     - Populate values.yaml to specify image name, tag , nodeSelector, etc.
         - Please find an example values.yaml file in [_helm-charts/values.yaml_](https://github.com/ROCm/device-config-manager/blob/main/helm-charts/values.yaml#L1)
     - Run the below command to build the helm-chart using the values.yaml.
+    - `make helm-build`
 
 ### Partitioning GPUs using DCM
 -  GPU on the node cannot be partitioned on the go, we need to bring down all daemonsets using the GPU resource before partitioning. Hence we need to taint the node and the partition.
