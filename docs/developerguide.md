@@ -136,6 +136,7 @@ make amdsmi-compile
     - Populate values.yaml to specify image name, tag , nodeSelector, etc.
         - Please find an example values.yaml file in [_helm-charts/values.yaml_](https://github.com/ROCm/device-config-manager/blob/main/helm-charts/values.yaml#L1)
     - Run the below command to build the helm-chart using the values.yaml.
+    - `make helm-build`
 
 ### Partitioning GPUs using DCM
 -  GPU on the node cannot be partitioned on the go, we need to bring down all daemonsets using the GPU resource before partitioning. Hence we need to taint the node and the partition.
