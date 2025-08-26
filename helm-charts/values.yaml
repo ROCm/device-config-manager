@@ -4,9 +4,10 @@ platform: k8s
 nodeSelector: {}
 
 image:
-  repository: rocm/device-config-manager
-  tag: v1.3.0
+  repository: docker.io/rocm/device-config-manager
+  tag: v1.0.0
   pullPolicy: Always
+  initContainerImage: busybox:1.36
 
 # specify configmap name (mandatory)
 configMap: "dcm-st"

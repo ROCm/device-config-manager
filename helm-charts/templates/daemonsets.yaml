@@ -25,7 +25,7 @@ spec:
         - -c
         - while [ ! -d /host-sys/class/kfd ] || [ ! -d /host-sys/module/amdgpu/drivers/
           ]; do echo "amdgpu driver is not loaded "; sleep 2 ;done
-        image: busybox:1.36
+        image: {{ .Values.image.initContainerImage }}
         imagePullPolicy: IfNotPresent
         name: driver-init
         securityContext:
