@@ -22,6 +22,9 @@ RUN localedef -i en_US -f UTF-8 en_US.UTF-8
 RUN curl -k -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc
 
+RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+    chmod a+x /usr/local/bin/yq
+
 RUN echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu jammy stable' > /etc/apt/sources.list.d/docker.list
 
 RUN apt-get update && apt-get install -y \

@@ -4,6 +4,9 @@
 # Docker Registry
 DOCKER_REGISTRY ?= docker.io/rocm
 
+# helm environment variables
+HELM_DCM_IMAGE := $(DOCKER_REGISTRY)/device-config-manager
+
 # Build Container environment
 DOCKER_BUILDER_TAG ?= v1.0
 BUILD_BASE_IMAGE ?= ubuntu:22.04
@@ -84,6 +87,7 @@ HTML_DIR := $(BUILD_DIR)/html
 # library branch to build amdsmi libraries
 AMDSMI_BRANCH ?= amd-mainline
 AMDSMI_COMMIT ?= 61ea0f2fb86b337d0efaef4337e95bc24df2a599
+PROJECT_VERSION ?= "1.4.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
@@ -278,4 +282,13 @@ gen: gopkglist
 copy-assets-k8s:
 	mkdir -p $(TOP_DIR)/build/assets/
 	cp -r $(TOP_DIR)/assets/amd_smi_lib/x86_64/$(RHEL_LIBDIR)/lib/* $(TOP_DIR)/build/assets
-	
+
+# cicd target to build helm chart - requires PROJECT_VERSION, DCM_IMAGE_TAG to be set
+.PHONY: helm
+helm: helm-lint
+	@rm -rf helm-charts-k8s
+	@yq eval -i '.image.repository = "$(HELM_DCM_IMAGE)"' helm-charts/values.yaml
+	@yq eval -i '.image.tag = "$(DCM_IMAGE_TAG)"' helm-charts/values.yaml
+	@mkdir -p helm-charts-k8s
+	helm package helm-charts/ --destination ./helm-charts-k8s --app-version ${PROJECT_VERSION} --version ${PROJECT_VERSION}
+	cp -vf helm-charts-k8s/device-config-manager-*.tgz helm-charts-k8s/device-config-manager-helm-k8s-${PROJECT_VERSION}.tgz
