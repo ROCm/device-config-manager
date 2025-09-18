@@ -19,8 +19,5 @@ set -euo pipefail
 #
 # entry point script run on creating a node management container
 
-LD_LIBRARY_PATH=/opt/rocm-6.4.0/lib &
-
-sleep 2
 # run the partition binary
-/home/amd/bin/server
+LD_PRELOAD=/home/amd/lib/libamd_smi.so.25 /home/amd/bin/server

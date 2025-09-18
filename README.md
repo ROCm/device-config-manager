@@ -16,7 +16,7 @@ For more details, please refer to [_docs/developerguide.md_](https://github.com/
   - Ubuntu 22.04, Ubuntu 24.04
 
 ## RDC version
-  - ROCM 6.3, ROCM 6.4
+  - ROCM 6.3, ROCM 6.4, ROCM 7.0
 
 ## Documentation
 

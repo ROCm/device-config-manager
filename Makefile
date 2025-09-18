@@ -85,8 +85,8 @@ BUILD_DIR := $(DOCS_DIR)/_build
 HTML_DIR := $(BUILD_DIR)/html
 
 # library branch to build amdsmi libraries
-AMDSMI_BRANCH ?= amd-mainline
-AMDSMI_COMMIT ?= 61ea0f2fb86b337d0efaef4337e95bc24df2a599
+AMDSMI_BRANCH ?= rocm-7.0.0
+AMDSMI_COMMIT ?= 37d158ab4578409909213f9cd085aad3efaeb170
 PROJECT_VERSION ?= "1.4.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
@@ -249,10 +249,23 @@ e2e:
 update-submodules:
 	git submodule update --remote --recursive
 
-.PHONY: build-all
-build-all: 
-	${MAKE} amdsmi-compile-rhel amdsmi-compile-ub22 amdsmi-compile-ub24 amdsmi-compile-azure
+.PHONY: build-amdsmi-all
+build-amdsmi-all:
+	${MAKE} amdsmi-build-rhel amdsmi-build-ub22 amdsmi-build-ub24 amdsmi-build-azure
 	@echo "Docker image build is available under docker/ directory"
+
+.PHONY: compile-amdsmi-all
+compile-amdsmi-all:
+	${MAKE} amdsmi-compile-rhel amdsmi-compile-ub22 amdsmi-compile-ub24 amdsmi-compile-azure
+
+.PHONY: amdsmi-update
+amdsmi-update:
+	@echo "Updating amdsmi libs from branch $(AMDSMI_BRANCH) and commit id $(AMDSMI_COMMIT)"
+	${MAKE} update-submodules build-amdsmi-all compile-amdsmi-all
+	cp build/assets/AZURE3/dcmout/* assets/amd_smi_lib/x86_64/AZURE3/lib/
+	cp build/assets/RHEL9/dcmout/* assets/amd_smi_lib/x86_64/RHEL9/lib/
+	cp build/assets/UBUNTU22/dcmout/* assets/amd_smi_lib/x86_64/UBUNTU22/lib/
+	cp build/assets/UBUNTU24/dcmout/* assets/amd_smi_lib/x86_64/UBUNTU24/lib/
 
 .PHONY: docs clean-docs dep-docs
 dep-docs:

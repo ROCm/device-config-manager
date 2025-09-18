@@ -25,7 +25,7 @@ endif
 		-w $(SMILIB_CONTAINER_WORKDIR) $(BUILD_IMAGE_OS)
 	@echo 'Copying amdsmi assets to ${TOP_DIR}/build/assets/${OS}'
 	@mkdir -p ${TOP_DIR}/build/assets/${OS}/
-	@cp -rvf ${TOP_DIR}/libamdsmi/build/exporterout ${TOP_DIR}/build/assets/${OS}/
+	@cp -rvf ${TOP_DIR}/libamdsmi/build/dcmout ${TOP_DIR}/build/assets/${OS}/
 
 .PHONY: amdsmi-compile-rhel
 amdsmi-compile-rhel:

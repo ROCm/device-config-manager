@@ -600,6 +600,13 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 
 				memoryType := convertMemoryPartitionType(currentMemory)
 				ret_n := C.amdsmi_set_gpu_memory_partition(processor_handle, memoryType)
+				// behavior change from ROCM 7.0.0 , amdsmi_set_gpu_memory_partition API does not reload drivers automatically
+				// need to call a reload API seperately
+				log.Println("Reloading the drivers post amdsmi_set_gpu_memory_partition() call")
+				ret_driver_reload := C.amdsmi_gpu_driver_reload()
+				if ret_driver_reload != C.AMDSMI_STATUS_SUCCESS {
+					log_e.Errorf("Failed to reload driver %v \n", partition_err_reason)
+				}
 				updatedMemory := getCurrentGPUMemoryPartition(processor_handle)
 				if ret_n != C.AMDSMI_STATUS_SUCCESS || (updatedMemory == existingMemory) {
 					partition_err_reason = getAMDSMIStatusString(int(ret_n))

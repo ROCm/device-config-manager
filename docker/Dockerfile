@@ -10,8 +10,8 @@ LABEL name="device-config-manager" \
     description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
 
 # unused for now revisit
-ARG ROCM_VERSION=6.4
-ARG AMDGPU_VERSION=6.4
+ARG ROCM_VERSION=7.0
+ARG AMDGPU_VERSION=7.0
 
 ADD rhelrepofiles/amdgpu.repo /etc/yum.repos.d/amdgpu.repo 
 ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo
@@ -20,8 +20,9 @@ RUN microdnf clean all && microdnf install -y sudo procps file libcap-devel libd
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/amd/bin/:/opt/rocm/bin/
 RUN mkdir -p /home/amd/bin/
+RUN mkdir -p /home/amd/lib/
 
-ENV LD_LIBRARY_PATH=/opt/rocm/lib
+ADD ./smilib/ /home/amd/lib/
 ADD ./device-config-manager /home/amd/bin/server
 RUN mkdir -p /home/amd/tools/
 
