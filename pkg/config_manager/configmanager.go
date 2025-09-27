@@ -430,7 +430,9 @@ func retryMemoryPartitionWithWait(processor_handle C.amdsmi_processor_handle, ex
 		return true // partition_failed = true
 	}
 
-	log.Println("Waiting up to 3 minutes for memory partition to match expected value...")
+	log.Println("Waiting up to 5 minutes for memory partition to match expected value...")
+	partStatus.Reason = "Waiting up to 5 minutes for kmm drivers memory partition to match expected value..."
+	generateK8sEvent(nil, "recovering memory partition for KMM driver, might take upto 5 mins", partStatus)
 	success := false
 	timeout := time.After(globals.KMMDriverRecoveryTimeout)
 	ticker := time.NewTicker(globals.KMMDriverRecoveryCheckInterval)
@@ -618,6 +620,7 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 					// try to recover the memory partition by reloading KMM driver
 					partition_failed = true
 					if nodeName != "" && kmmDriverEnabled {
+						populateGPUEventStatus(gpu_id, partitionType, "Pending", fmt.Sprintf("trying to recover the memory partition by reloading KMM driver"), idx)
 						partition_failed = retryMemoryPartitionWithWait(processor_handle, currentMemory, nodeName, kc)
 					}
 					if partition_failed {
