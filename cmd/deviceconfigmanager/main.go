@@ -57,7 +57,7 @@ func main() {
 		configmanager.TriggerRetryLoop(selectedProfile, "initial partitioning")
 	}
 
-	// starting a seperate go routine for file watcher
+	// starting a separate go routine for file watcher
 	go configmanager.StartFileWatcher(selectedProfile)
 
 	go configmanager.NodeLabelWatcher()

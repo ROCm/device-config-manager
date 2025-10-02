@@ -31,6 +31,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"slices"
 	"sync"
 	"time"
 	"unsafe"
@@ -208,6 +209,8 @@ func convertMemoryPartitionType(memoryPartition string) C.amdsmi_memory_partitio
 		return C.AMDSMI_MEMORY_PARTITION_NPS2
 	case "NPS4":
 		return C.AMDSMI_MEMORY_PARTITION_NPS4
+	case "NPS8":
+		return C.AMDSMI_MEMORY_PARTITION_NPS8
 	default:
 		log_e.Errorf("Unknown memory partition type: %s, using default type NPS1", memoryPartition)
 		return C.AMDSMI_MEMORY_PARTITION_NPS1 // default value
@@ -282,6 +285,55 @@ outer:
 	return result
 }
 
+func getSupportedMemoryPartitionType(processor_handle C.amdsmi_processor_handle) ([]string, error) {
+	var cfg C.amdsmi_memory_partition_config_t
+	if ret := C.amdsmi_get_gpu_memory_partition_config(processor_handle, &cfg); ret != C.AMDSMI_STATUS_SUCCESS {
+		return nil, fmt.Errorf("amdsmi_get_gpu_memory_partition_config failed: status=%d", ret)
+	}
+
+	// Read the raw 32-bit mask from the union. cgo does not expose the union member name.
+	// amdsmi_nps_caps_t layout places the 32-bit mask at offset 0.
+	mask := uint32(*(*C.uint32_t)(unsafe.Pointer(&cfg.partition_caps)))
+
+	type partDesc struct {
+		bit  uint32
+		mode C.amdsmi_memory_partition_type_t
+		name string
+	}
+	parts := []partDesc{
+		{bit: 0, mode: C.AMDSMI_MEMORY_PARTITION_NPS1, name: "NPS1"},
+		{bit: 1, mode: C.AMDSMI_MEMORY_PARTITION_NPS2, name: "NPS2"},
+		{bit: 2, mode: C.AMDSMI_MEMORY_PARTITION_NPS4, name: "NPS4"},
+		{bit: 3, mode: C.AMDSMI_MEMORY_PARTITION_NPS8, name: "NPS8"},
+	}
+
+	supported := make([]string, 0, 4)
+	for _, p := range parts {
+		bitMask := uint32(1) << p.bit
+		// Enumeration values (1,2,4,8) match bitMask already, but we check only bitMask.
+		if mask&bitMask != 0 {
+			supported = append(supported, p.name)
+		}
+	}
+
+	// Fallback: mask empty but current mode is set.
+	if len(supported) == 0 && cfg.mp_mode != C.AMDSMI_MEMORY_PARTITION_UNKNOWN {
+		for _, p := range parts {
+			if cfg.mp_mode == p.mode {
+				supported = append(supported, p.name)
+				break
+			}
+		}
+	}
+
+	if len(supported) == 0 {
+		return nil, fmt.Errorf("no supported memory partition capability reported (mask=0x%X, mp_mode=%d)", mask, cfg.mp_mode)
+	}
+
+	log.Printf("getSupportedMemoryPartitionType success: raw_mask=0x%X current_mode=%v supported=%v", mask, cfg.mp_mode, supported)
+	return supported, nil
+}
+
 func validateProfile(profile *partition_pb.GPUConfigProfile, totalGPUCount int) error {
 	devices_conf_count := len(profile.Profiles)
 	profiles := profile.Profiles
@@ -326,6 +378,7 @@ func validateProfile(profile *partition_pb.GPUConfigProfile, totalGPUCount int) 
 			err := errors.New("profile cannot have combination of NPS1, NPS2 and NPS4 memory types")
 			return err
 		}
+
 		nod := profiles[i].NumGPUsAssigned
 		log.Printf("Partitioning %v devices with compute partition type %v and memory type %v", nod, currentCompute, currentMemory)
 	}
@@ -460,6 +513,33 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 			log.Println("Memory partition :")
 			partition_needed = true
 			if currentMemory != existingMemory {
+				// verify whether currentMemory is a supported memory partition type
+				supportedMemoryPartitions, err := getSupportedMemoryPartitionType(processor_handle)
+				if err != nil || len(supportedMemoryPartitions) == 0 {
+					errMsg := fmt.Sprintf("unable to fetch supported memory partitions or got empty supported memory partition list %+v err %+v", supportedMemoryPartitions, err)
+					log.Printf(errMsg)
+					partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", errMsg)
+					generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
+					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+					if err != nil {
+						log.Printf("Error adding status node label: %s\n", err.Error())
+					}
+					partition_failed = true
+					continue
+				}
+				if !slices.Contains(supportedMemoryPartitions, currentMemory) {
+					log.Printf("Unsupported memory partition type %v given in profile. List of supported memory partition types are %v", currentMemory, supportedMemoryPartitions)
+					err = errors.New("unsupported memory partition type given in profile")
+					partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", err)
+					generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
+					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+					if err != nil {
+						log.Printf("Error adding status node label: %s\n", err.Error())
+					}
+					partition_failed = true
+					continue
+				}
+				// trigger memory partition
 				log.Println("Triggering memory partition !!")
 				log.Printf("Existing memory partition: %s\n", existingMemory)
 
