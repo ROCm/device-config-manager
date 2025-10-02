@@ -1,5 +1,15 @@
 # Release Notes
 
+## v1.4.0
+
+### Release Highlights
+
+ - **MI35X Support**
+    - Add support for MI35X series GPUs to enable the configuration of GPU partitions.
+
+### Platform Support
+ROCM 7.0.x
+
 ## v1.3.0
 
 ### Release Highlights
