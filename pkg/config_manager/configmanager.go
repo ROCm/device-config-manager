@@ -524,20 +524,31 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 					if err != nil {
 						log.Printf("Error adding status node label: %s\n", err.Error())
 					}
-					partition_failed = true
-					continue
+					// if DCM failed to get any supported memory partition type
+					// it is possible that:
+					// 1. the amd-smi API is not working properly
+					// 2. or the device itself does not support memory partitioning
+					// in this case, we should just return and not retry
+					// don't set partition_failed = true here
+					// we don't want to retry per minute for PartitionGPU() when it is unsupported
+					// the corresponding GPU event and node label are already set above
+					return
 				}
 				if !slices.Contains(supportedMemoryPartitions, currentMemory) {
-					log.Printf("Unsupported memory partition type %v given in profile. List of supported memory partition types are %v", currentMemory, supportedMemoryPartitions)
-					err = errors.New("unsupported memory partition type given in profile")
+					errMsg := fmt.Sprintf("Unsupported memory partition type %v given in profile. List of supported memory partition types are %v", currentMemory, supportedMemoryPartitions)
+					log.Printf(errMsg)
+					err = fmt.Errorf(errMsg)
 					partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", err)
 					generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
 					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
 					if err != nil {
 						log.Printf("Error adding status node label: %s\n", err.Error())
 					}
-					partition_failed = true
-					continue
+					// if the requested memory partition type is not supported
+					// don't set partition_failed = true here
+					// we don't want to retry per minute for PartitionGPU() when it is unsupported
+					// the corresponding GPU event and node label are already set above
+					return
 				}
 				// trigger memory partition
 				log.Println("Triggering memory partition !!")
