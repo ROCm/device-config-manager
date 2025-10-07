@@ -299,3 +299,51 @@ func (k *K8sClient) AddNodeLabel(nodeName string, key string, value string) erro
 	log.Printf("Gpu-config-profile-state label added successfully")
 	return nil
 }
+
+func (k *K8sClient) DeleteNodeLabel(nodeName string, key string) error {
+	k.reConnect()
+	k.Lock()
+	defer k.Unlock()
+	ctx, cancel := context.WithCancel(k.ctx)
+	defer cancel()
+
+	retries := 1
+	var err error
+	var node *v1.Node
+
+	for i := 0; i < retries; i++ {
+		node, err = k.clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+		if err == nil {
+			break
+		}
+		log.Printf("k8s get node API failed (attempt %d/%d): %v", i+1, retries, err)
+		time.Sleep(10 * time.Second)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if _, exists := node.Labels[key]; exists {
+		delete(node.Labels, key)
+	} else {
+		log.Printf("Label %q not found on node %q", key, nodeName)
+		return nil // or return an error if you want to enforce presence
+	}
+
+	for i := 0; i < retries; i++ {
+		_, err = k.clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+		if err == nil {
+			break
+		}
+		log.Printf("k8s update node API failed (attempt %d/%d): %v", i+1, retries, err)
+		time.Sleep(10 * time.Second)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Label %q deleted successfully from node %q", key, nodeName)
+	return nil
+}

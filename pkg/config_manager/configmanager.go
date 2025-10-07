@@ -23,6 +23,7 @@ package configmanager
 */
 import "C"
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -769,6 +770,42 @@ func checkInvalidPartitionType(computeType string, memoryType string) error {
 	return nil
 }
 
+func DetectDuplicateKeys(rawJSON []byte, targetKey string) (error, []string) {
+	var topLevel map[string]json.RawMessage
+	if err := json.Unmarshal(rawJSON, &topLevel); err != nil {
+		return fmt.Errorf("invalid JSON: %v", err), nil
+	}
+
+	var gpuProfiles json.RawMessage
+	if err := json.Unmarshal(rawJSON, &topLevel); err != nil {
+		return fmt.Errorf("failed to parse top-level JSON: %v", err), nil
+	}
+	gpuProfiles = topLevel["gpu-config-profiles"]
+
+	decoder := json.NewDecoder(bytes.NewReader(gpuProfiles))
+	_, _ = decoder.Token() // skip opening '{'
+
+	seen := map[string]bool{}
+	duplicates := []string{}
+
+	for decoder.More() {
+		t, _ := decoder.Token()
+		key := t.(string)
+		if seen[key] {
+			duplicates = append(duplicates, key)
+		}
+		seen[key] = true
+
+		var skip json.RawMessage
+		decoder.Decode(&skip)
+	}
+
+	if len(duplicates) > 0 {
+		return fmt.Errorf("duplicate profile names found: %v", duplicates), duplicates
+	}
+	return nil, nil
+}
+
 func PartitionGPU(selectedProfile string) error {
 
 	var profile *partition_pb.GPUConfigProfile
@@ -807,6 +844,16 @@ func PartitionGPU(selectedProfile string) error {
 		return nil
 	}
 
+	if err, duplicates := DetectDuplicateKeys(file, "gpu-config-profiles"); err != nil {
+		log.Printf("Duplicate profile names found in the configmap. Skipping partitioning GPU\n Duplicates are %v", duplicates)
+		partStatus.Reason = "Duplicate Profile names exist in the configmap"
+		generateK8sEvent(errors.New("Duplicate profile found"), globals.K8EventDuplicateProfile, partStatus)
+		err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+		if err != nil {
+			log.Printf("Error adding status node label: %s\n", err.Error())
+		}
+		return nil
+	}
 	profile, exists = profiles.ProfilesList[selectedProfile]
 	if exists {
 		log.Printf("Selected Profile %v found in the configmap.\n", selectedProfile)

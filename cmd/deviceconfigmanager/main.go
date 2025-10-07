@@ -16,10 +16,13 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
+	"github.com/ROCm/device-config-manager/pkg/amdgpu/k8sclient"
 	configmanager "github.com/ROCm/device-config-manager/pkg/config_manager"
+	"github.com/ROCm/device-config-manager/pkg/config_manager/globals"
 )
 
 var (
@@ -42,6 +45,14 @@ func main() {
 		<-make(chan struct{})
 	}
 
+	var kc *k8sclient.K8sClient = k8sclient.NewClient(context.Background())
+	var nodeName string = k8sclient.GetNodeName()
+	// delete existing dcm labels
+	err := kc.DeleteNodeLabel(nodeName, globals.StateLabelKey)
+	err = kc.DeleteNodeLabel(nodeName, globals.LabelKey)
+	if err != nil {
+		log.Printf("Error adding status node label: %s\n", err.Error())
+	}
 	log.Printf("#####################################")
 	//Read profile from node labeller
 	selectedProfile, err := configmanager.GetPartitionProfile()
