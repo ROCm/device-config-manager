@@ -49,7 +49,6 @@ func main() {
 	var nodeName string = k8sclient.GetNodeName()
 	// delete existing dcm labels
 	err := kc.DeleteNodeLabel(nodeName, globals.StateLabelKey)
-	err = kc.DeleteNodeLabel(nodeName, globals.LabelKey)
 	if err != nil {
 		log.Printf("Error adding status node label: %s\n", err.Error())
 	}
