@@ -44,7 +44,7 @@ const (
 )
 
 var ValidComputePartitions = []string{"SPX", "CPX", "DPX", "QPX"}
-var ValidMemoryPartitions = []string{"NPS1", "NPS2", "NPS4"}
+var ValidMemoryPartitions = []string{"NPS1", "NPS2", "NPS4", "NPS8"}
 
 const (
 	KMMDriverRecoveryUnloadTimeout = 30 * time.Second
