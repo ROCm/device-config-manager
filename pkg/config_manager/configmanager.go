@@ -662,6 +662,22 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 					if ret_n == C.AMDSMI_STATUS_BUSY {
 						log_e.Errorf("There might be existing pods/daemonsets on the cluster keeping the GPU resource busy, please remove them and retry. Pods list on this node: %v", podList)
 					}
+					// Check if the compute partition setting is not available (unsupported combination)
+					if int(ret_n) == 55 { // AMDSMI_STATUS_SETTING_NOT_AVAILABLE
+						errMsg := fmt.Sprintf("Unsupported compute partition combination %v-%v given in profile. The memory partition %v does not support compute partition %v", currentCompute, currentMemory, currentMemory, currentCompute)
+						log.Printf(errMsg)
+						err = fmt.Errorf(errMsg)
+						partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", err)
+						generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
+						err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
+						if err != nil {
+							log.Printf("Error adding status node label: %s\n", err.Error())
+						}
+						// don't set partition_failed = true here
+						// we don't want to retry per minute for PartitionGPU() when the combination is unsupported
+						// the corresponding GPU event and node label are already set above
+						return
+					}
 					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
 					if err != nil {
 						log.Printf("Error adding status node label: %s\n", err.Error())
