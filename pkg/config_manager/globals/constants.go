@@ -25,7 +25,7 @@ const (
 	DefaultMemoryPartition  = "NPS1"
 	DefaultProfileName      = "default"
 	LabelKey                = "dcm.amd.com/gpu-config-profile"
-	TriggerLabelKey         = "dcm.amd.com/apply-gpu-config-profile"
+	StateLabelKey           = "dcm.amd.com/gpu-config-profile-state"
 
 	EventSourceComponentName       = "amd-device-config-manager"
 	K8EventInvalidComputeType      = "InvalidComputeType"
@@ -40,10 +40,11 @@ const (
 	K8EventConfigMapNotPresent     = "ConfigMapNotPresent"
 	K8EventInvalidJSONInConfigMap  = "InvalidJSONInConfigMap"
 	K8EventAMDSMIAPIFailure        = "AMDSMIAPIFailure"
+	K8EventDuplicateProfile        = "DuplicateProfileExists"
 )
 
 var ValidComputePartitions = []string{"SPX", "CPX", "DPX", "QPX"}
-var ValidMemoryPartitions = []string{"NPS1", "NPS2", "NPS4"}
+var ValidMemoryPartitions = []string{"NPS1", "NPS2", "NPS4", "NPS8"}
 
 const (
 	KMMDriverRecoveryUnloadTimeout = 30 * time.Second
