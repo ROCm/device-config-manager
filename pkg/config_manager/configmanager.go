@@ -539,6 +539,8 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 			processor_type, err := amdsmiGetProcessorType(processor_handle)
 			if err != nil {
 				log_e.Errorf("Error %v", err)
+				// Populate GPU status for the failed GPU before returning
+				populateGPUEventStatus(gpu_id, partitionType, "Failure", fmt.Sprintf("AMD-SMI API error : %v", err), idx)
 				partStatus.Reason = fmt.Sprintf("AMD-SMI API error : %v", err)
 				generateK8sEvent(err, globals.K8EventAMDSMIAPIFailure, partStatus)
 				err := kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
@@ -571,6 +573,8 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 				if err != nil || len(supportedMemoryPartitions) == 0 {
 					errMsg := fmt.Sprintf("unable to fetch supported memory partitions or got empty supported memory partition list %+v err %+v", supportedMemoryPartitions, err)
 					log.Printf(errMsg)
+					// Populate GPU status for the failed GPU before returning
+					populateGPUEventStatus(gpu_id, partitionType, "Failure", errMsg, idx)
 					partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", errMsg)
 					generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
 					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
@@ -591,6 +595,8 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 					errMsg := fmt.Sprintf("Unsupported memory partition type %v given in profile. List of supported memory partition types are %v", currentMemory, supportedMemoryPartitions)
 					log.Printf(errMsg)
 					err = fmt.Errorf(errMsg)
+					// Populate GPU status for the failed GPU before returning
+					populateGPUEventStatus(gpu_id, partitionType, "Failure", errMsg, idx)
 					partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", err)
 					generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
 					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
@@ -667,6 +673,9 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 						errMsg := fmt.Sprintf("Unsupported compute partition combination %v-%v given in profile. The memory partition %v does not support compute partition %v", currentCompute, currentMemory, currentMemory, currentCompute)
 						log.Printf(errMsg)
 						err = fmt.Errorf(errMsg)
+
+						// Populate GPU status for the failed GPU before returning
+						populateGPUEventStatus(gpu_id, partitionType, "Failure", errMsg, idx)
 						partStatus.Reason = fmt.Sprintf("Partition failed with reason: %v", err)
 						generateK8sEvent(err, globals.K8EventInvalidProfile, partStatus)
 						err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
