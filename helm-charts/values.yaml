@@ -5,7 +5,7 @@ nodeSelector: {}
 
 image:
   repository: docker.io/rocm/device-config-manager
-  tag: v1.0.0
+  tag: v1.4.1
   pullPolicy: Always
   initContainerImage: busybox:1.36
 

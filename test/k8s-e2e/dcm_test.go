@@ -306,12 +306,12 @@ func (s *E2ESuite) Test010DCMNPS2Partitioning(c *C) {
 	validateNodeLabels(c, labels, false)
 }
 
-func (s *E2ESuite) Test010DCMNPS2Partitioning(c *C) {
+func (s *E2ESuite) Test011DCMOptionalSkippedGPUs(c *C) {
 	ctx := context.Background()
 
 	worker_node := s.getWorkerNode(c, ctx)
-	log.Printf("Adding node label to select profile: nps2\n")
-	s.addRemoveNodeLabels(worker_node, "nps2", false)
+	log.Printf("Adding node label to select profile: optional_filter (testing optional skipped GPUs)\n")
+	s.addRemoveNodeLabels(worker_node, "optional_filter", true)
 	labels, err := s.k8sclient.GetNodeLabel(ctx, worker_node)
 	if err != nil {
 		log.Printf("Error in getting node labels")
