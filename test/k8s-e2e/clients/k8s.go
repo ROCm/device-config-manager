@@ -231,6 +231,14 @@ func (k *K8sClient) CreateConfigMap(ctx context.Context, namespace string, name 
 		},
 	}
 
+	profiles_set10 := []*ProfileConfig{
+		{
+			ComputePartition: "SPX",
+			MemoryPartition:  "NPS1",
+			NumGPUsAssigned:  8,
+		},
+	}
+
 	profileslist := GPUConfigProfiles{
 		ProfilesList: map[string]*GPUConfigProfile{
 			"default": {
@@ -268,6 +276,9 @@ func (k *K8sClient) CreateConfigMap(ctx context.Context, namespace string, name 
 			"nps2": {
 				Filters:  skippedGPUs,
 				Profiles: profiles_set9,
+			},
+			"optional_filter": {
+				Profiles: profiles_set10,
 			},
 		},
 	}
