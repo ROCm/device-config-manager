@@ -184,7 +184,7 @@ helm-build: helm-lint
 
 .PHONY: helm-install
 helm-install: helm-build
-	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.0.0.tgz -n kube-amd-gpu --create-namespace -f values.yaml
+	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.4.1.tgz -n kube-amd-gpu --create-namespace -f values.yaml
 
 .PHONY: helm-uninstall
 helm-uninstall:
