@@ -256,94 +256,78 @@ func (k *K8sClient) GetPods(nodeName string) []string {
 }
 
 func (k *K8sClient) AddNodeLabel(nodeName string, key string, value string) error {
-	k.reConnect()
-	k.Lock()
-	defer k.Unlock()
-	ctx, cancel := context.WithCancel(k.ctx)
-	defer cancel()
+    k.reConnect()
+    k.Lock()
+    defer k.Unlock()
+    ctx, cancel := context.WithCancel(k.ctx)
+    defer cancel()
 
-	retries := 10
-	var err error
-	var node *v1.Node
+    retries := 10
+    var err error
 
-	for i := range retries {
-		node, err = k.clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-		if err == nil {
-			break
-		}
+    for i := 0; i < retries; i++ {
+        // Fetch the latest node on each retry
+        node, err := k.clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+        if err != nil {
+            log.Printf("k8s get node API failed (attempt %d/%d): %v", i+1, retries, err)
+            time.Sleep(10 * time.Second)
+            continue
+        }
 
-		log.Printf("k8s get node API failed (attempt %d/%d): %v", i+1, retries, err)
-		time.Sleep(10 * time.Second)
-	}
+        // Modify the label
+        node.Labels[key] = value
 
-	if err != nil {
-		return err
-	}
+        // Try to update
+        _, err = k.clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+        if err == nil {
+            log.Printf("Label %q added successfully to node %q", key, nodeName)
+            return nil
+        }
 
-	node.Labels[key] = value
+        log.Printf("k8s update node API failed (attempt %d/%d): %v", i+1, retries, err)
+        time.Sleep(10 * time.Second)
+    }
 
-	for i := range retries {
-		_, err = k.clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-		if err == nil {
-			break
-		}
-
-		log.Printf("k8s update node API failed (attempt %d/%d): %v", i+1, retries, err)
-		time.Sleep(10 * time.Second)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Gpu-config-profile-state label added successfully")
-	return nil
+    return fmt.Errorf("failed to add label after %d retries: %w", retries, err)
 }
 
 func (k *K8sClient) DeleteNodeLabel(nodeName string, key string) error {
-	k.reConnect()
-	k.Lock()
-	defer k.Unlock()
-	ctx, cancel := context.WithCancel(k.ctx)
-	defer cancel()
+    k.reConnect()
+    k.Lock()
+    defer k.Unlock()
+    ctx, cancel := context.WithCancel(k.ctx)
+    defer cancel()
 
-	retries := 1
-	var err error
-	var node *v1.Node
+    retries := 10 // Increased from 1 to match AddNodeLabel
+    var err error
 
-	for i := 0; i < retries; i++ {
-		node, err = k.clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-		if err == nil {
-			break
-		}
-		log.Printf("k8s get node API failed (attempt %d/%d): %v", i+1, retries, err)
-		time.Sleep(10 * time.Second)
-	}
+    for i := 0; i < retries; i++ {
+        // Fetch the latest node on each retry
+        node, err := k.clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+        if err != nil {
+            log.Printf("k8s get node API failed (attempt %d/%d): %v", i+1, retries, err)
+            time.Sleep(10 * time.Second)
+            continue
+        }
 
-	if err != nil {
-		return err
-	}
+        // Check if label exists and delete it
+        if _, exists := node.Labels[key]; !exists {
+            log.Printf("Label %q not found on node %q", key, nodeName)
+            return nil
+        }
 
-	if _, exists := node.Labels[key]; exists {
-		delete(node.Labels, key)
-	} else {
-		log.Printf("Label %q not found on node %q", key, nodeName)
-		return nil // or return an error if you want to enforce presence
-	}
+        delete(node.Labels, key)
 
-	for i := 0; i < retries; i++ {
-		_, err = k.clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-		if err == nil {
-			break
-		}
-		log.Printf("k8s update node API failed (attempt %d/%d): %v", i+1, retries, err)
-		time.Sleep(10 * time.Second)
-	}
+        // Try to update
+        _, err = k.clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+        if err == nil {
+            log.Printf("Label %q deleted successfully from node %q", key, nodeName)
+            return nil
+        }
 
-	if err != nil {
-		return err
-	}
+        log.Printf("k8s update node API failed (attempt %d/%d): %v", i+1, retries, err)
+        time.Sleep(10 * time.Second)
+    }
 
-	log.Printf("Label %q deleted successfully from node %q", key, nodeName)
-	return nil
+    return fmt.Errorf("failed to delete label after %d retries: %w", retries, err)
 }
