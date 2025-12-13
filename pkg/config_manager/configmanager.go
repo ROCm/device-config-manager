@@ -615,12 +615,17 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 
 				memoryType := convertMemoryPartitionType(currentMemory)
 				ret_n := C.amdsmi_set_gpu_memory_partition(processor_handle, memoryType)
-				// behavior change from ROCM 7.0.0 , amdsmi_set_gpu_memory_partition API does not reload drivers automatically
-				// need to call a reload API seperately
-				log.Println("Reloading the drivers post amdsmi_set_gpu_memory_partition() call")
-				ret_driver_reload := C.amdsmi_gpu_driver_reload()
-				if ret_driver_reload != C.AMDSMI_STATUS_SUCCESS {
-					log_e.Errorf("Failed to reload driver %v \n", partition_err_reason)
+				// only call this manual reload function when it is non-KMM managed driver
+				// otherwise the manual reload would enable the inbox driver back but we expect KMM managed driver back
+				// the retryMemoryPartitionWithWait() will handle the KMM managed driver reload
+				if !kmmDriverEnabled {
+					// behavior change from ROCM 7.0.0 , amdsmi_set_gpu_memory_partition API does not reload drivers automatically
+					// need to call a reload API seperately
+					log.Println("Reloading the drivers post amdsmi_set_gpu_memory_partition() call")
+					ret_driver_reload := C.amdsmi_gpu_driver_reload()
+					if ret_driver_reload != C.AMDSMI_STATUS_SUCCESS {
+						log_e.Errorf("Failed to reload driver %v \n", partition_err_reason)
+					}
 				}
 				updatedMemory := getCurrentGPUMemoryPartition(processor_handle)
 				if ret_n != C.AMDSMI_STATUS_SUCCESS || (updatedMemory == existingMemory) {
