@@ -1,10 +1,10 @@
 package types
 
 type PartitionStatus struct {
-	SelectedProfile string
-	FinalStatus     string
-	Reason          string
-	GPUStatus       []GPUPartitionStatus
+	SelectedProfile string               `json:"SelectedProfile"`
+	FinalStatus     string               `json:"FinalStatus"`
+	Reason          string               `json:"Reason"`
+	GPUStatus       []GPUPartitionStatus `json:"GPUStatus,omitempty"`
 }
 
 type GPUPartitionStatus struct {
