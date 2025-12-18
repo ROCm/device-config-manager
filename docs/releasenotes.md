@@ -9,7 +9,7 @@
   - Enhanced driver reload support for ROCm 7.0.x with KMM (Kernel Module Management)
 
 ### Platform Support
-ROCm 7.0.x
+ROCm 7.1.x
 
 ## v1.4.0
 
