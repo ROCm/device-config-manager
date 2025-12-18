@@ -668,14 +668,22 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 
 				updatedCompute := getCurrentGPUComputePartition(processor_handle)
 				if ret_n != C.AMDSMI_STATUS_SUCCESS {
+					// Check if memory partition actually succeeded - if not, report memory failure instead
+					actualMemory := getCurrentGPUMemoryPartition(processor_handle)
 					partition_err_reason = getAMDSMIStatusString(int(ret_n))
-					log_e.Errorf("Failed to compute partition %v \n", partition_err_reason)
+					if actualMemory != currentMemory {
+						log_e.Errorf("Compute partition failed because memory partition failed. Memory partition is %v but requested was %v\n", actualMemory, currentMemory)
+						partition_err_reason = fmt.Sprintf("Memory partition failed - GPU has %v but profile requires %v", actualMemory, currentMemory)
+					} else {
+						log_e.Errorf("Failed to compute partition %v \n", partition_err_reason)
+					}
 					if ret_n == C.AMDSMI_STATUS_BUSY {
 						log_e.Errorf("There might be existing pods/daemonsets on the cluster keeping the GPU resource busy, please remove them and retry. Pods list on this node: %v", podList)
 					}
 					// Check if the compute partition setting is not available (unsupported combination)
-					if int(ret_n) == 55 { // AMDSMI_STATUS_SETTING_NOT_AVAILABLE
-						errMsg := fmt.Sprintf("Unsupported compute partition combination %v-%v given in profile. The memory partition %v does not support compute partition %v", currentCompute, currentMemory, currentMemory, currentCompute)
+					// But only report it as unsupported if memory partition actually succeeded
+					if int(ret_n) == 55 && actualMemory == currentMemory { // AMDSMI_STATUS_SETTING_NOT_AVAILABLE
+						errMsg := fmt.Sprintf("Unsupported compute partition combination %v-%v given in profile. The memory partition %v does not support compute partition %v", currentCompute, currentMemory, actualMemory, currentCompute)
 						log.Printf(errMsg)
 						err = fmt.Errorf(errMsg)
 
