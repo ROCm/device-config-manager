@@ -20,4 +20,4 @@ set -euo pipefail
 # entry point script run on creating a node management container
 
 # run the partition binary
-LD_PRELOAD=/home/amd/lib/libamd_smi.so.25 /home/amd/bin/server
+LD_PRELOAD=/home/amd/lib/libamd_smi.so.26 /home/amd/bin/server

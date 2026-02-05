@@ -1,5 +1,16 @@
 # Release Notes
 
+## v1.4.1
+
+### Release Highlights
+
+- **Bug Fixes and Stability Improvements**
+  - Enhanced robustness and error handling for GPU partition configuration in Kubernetes clusters
+  - Enhanced driver reload support for ROCm 7.0.x with KMM (Kernel Module Management)
+
+### Platform Support
+ROCm 7.1.x, 7.2.x
+
 ## v1.4.0
 
 ### Release Highlights

@@ -1,4 +1,4 @@
 [submodule "libamdsmi"]
 	path = libamdsmi
 	url = https://github.com/ROCm/amdsmi.git
-    branch = release/rocm-rel-7.0
+    branch = release/rocm-rel-7.2

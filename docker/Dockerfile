@@ -10,8 +10,8 @@ LABEL name="device-config-manager" \
     description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
 
 # unused for now revisit
-ARG ROCM_VERSION=7.0
-ARG AMDGPU_VERSION=7.0
+ARG ROCM_VERSION=7.2
+ARG AMDGPU_VERSION=7.2
 
 ADD rhelrepofiles/amdgpu.repo /etc/yum.repos.d/amdgpu.repo 
 ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo

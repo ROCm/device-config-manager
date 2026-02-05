@@ -85,15 +85,15 @@ BUILD_DIR := $(DOCS_DIR)/_build
 HTML_DIR := $(BUILD_DIR)/html
 
 # library branch to build amdsmi libraries
-AMDSMI_BRANCH ?= rocm-7.0.0
-AMDSMI_COMMIT ?= 37d158ab4578409909213f9cd085aad3efaeb170
+AMDSMI_BRANCH ?= rocm-7.2.0
+AMDSMI_COMMIT ?= 91c1f541d74ed5d9fe8094a2a22922e5fa021c62
 PROJECT_VERSION ?= "1.4.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-export ${AMDSMI_BRANCH}
-export ${AMDSMI_COMMIT}
+export AMDSMI_BRANCH
+export AMDSMI_COMMIT
 
 include Makefile.build
 include Makefile.compile

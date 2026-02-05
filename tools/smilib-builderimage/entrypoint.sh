@@ -7,11 +7,11 @@ echo "DEBUG: dcmoutdir=$dcmoutdir"
 
 cd /usr/src/github.com/ROCm/device-config-manager/libamdsmi
 git config --global --add safe.directory $dir
-if [ -z $BRANCH ]; then
+if [ ! -z "$BRANCH" ]; then
     echo "branch set to $BRANCH"
     git checkout $BRANCH || true
 fi
-if [ -z $COMMIT ]; then
+if [ ! -z "$COMMIT" ]; then
     echo "commit set to $COMMIT"
     git reset --hard $COMMIT
 fi
