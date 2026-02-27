@@ -27,9 +27,11 @@ RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/d
 
 RUN echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu jammy stable' > /etc/apt/sources.list.d/docker.list
 
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+
 RUN apt-get update && apt-get install -y \
   docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
-  make python3-sphinx python3-pip \
+  make python3 python3-sphinx python3-pip aspell aspell-en nodejs \
   git && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # download go1.25.11
@@ -55,6 +57,9 @@ RUN echo "INSECURE_REGISTRY is: $INSECURE_REGISTRY" && \
     else \
     echo "INSECURE_REGISTRY is not set"; \
     fi
+
+RUN npm install markdownlint-cli2 --global
+RUN pip3 install pyspelling
 
 ADD ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -1,0 +1,9 @@
+ignores:
+  - "vendor/**"
+  - "helm-charts/**"
+  - "libamdsmi/**"
+
+config:
+  # Disable rules that are too noisy
+  MD040: false  # Fenced code blocks should have a language specified
+  MD060: false  # Table column style alignment

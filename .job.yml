@@ -37,6 +37,10 @@ targets:
     commands: [ "sh", "-c", "cd /usr/src/github.com/ROCm/device-config-manager && make docs"]
     owners: ["email:nkomarla@amd.com"]
 
+  docs-lint:
+    commands: [ "/bin/sh", "-c", "cd /usr/src/github.com/ROCm/device-config-manager && make docs-lint"]
+    owners: ["email:nkomarla@amd.com"]
+
 image:
   bind_dir: "/device-config-manager"
   work_dir: "/device-config-manager"

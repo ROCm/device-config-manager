@@ -86,6 +86,9 @@ export AMDSMI_BUILDER_AZURE_IMAGE
 DOCS_DIR := ${TOP_DIR}/docs
 BUILD_DIR := $(DOCS_DIR)/_build
 HTML_DIR := $(BUILD_DIR)/html
+DOCS_MARKDOWNLINTCONFIG ?= docs/.markdownlint.yaml
+DOCS_MD_GLOB ?= "**/*.md"
+DOCS_SPELLCHECK_CONFIG ?= .spellcheck.yaml
 
 # library branch to build amdsmi libraries
 AMDSMI_BRANCH ?= rocm-7.2.1
@@ -287,6 +290,19 @@ docs: dep-docs
 
 clean-docs:
 	rm -rf $(BUILD_DIR)
+
+.PHONY: docs-lint-markdown
+docs-lint-markdown:
+	markdownlint-cli2 $(DOCS_MD_GLOB) --config $(DOCS_MARKDOWNLINTCONFIG)
+
+.PHONY: docs-lint-spelling
+docs-lint-spelling:
+	pyspelling -c $(DOCS_SPELLCHECK_CONFIG)
+
+.PHONY: docs-lint
+docs-lint: ## Run docs Markdown lint + spelling (full ROCm-style docs lint).
+	${MAKE} docs-lint-markdown
+	${MAKE} docs-lint-spelling
 
 .PHONY: gopkglist
 gopkglist:
