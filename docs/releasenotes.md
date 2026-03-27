@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.0
+
+- **Bug Fixes and Stability Improvements**
+
 ## v1.4.1
 
 ### Release Highlights
