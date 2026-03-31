@@ -436,7 +436,11 @@ func retryMemoryPartitionWithWait(processor_handle C.amdsmi_processor_handle, ex
 
 	log.Println("Waiting up to 5 minutes for memory partition to match expected value...")
 	partStatus.Reason = "Waiting up to 5 minutes for kmm drivers memory partition to match expected value..."
+	// Event payload uses the full PartitionStatus; set FinalStatus to Pending for this notification only.
+	prevFinal := partStatus.FinalStatus
+	partStatus.FinalStatus = "Pending"
 	generateK8sEvent(nil, "recovering memory partition for KMM driver, might take upto 5 mins", partStatus)
+	partStatus.FinalStatus = prevFinal
 	success := false
 	timeout_hit := false
 	timeout := time.After(globals.KMMDriverRecoveryTimeout)
