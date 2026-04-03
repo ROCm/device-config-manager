@@ -1,11 +1,11 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
 
 LABEL name="device-config-manager" \ 
     maintainer="nikhil.komarla@amd.com,sriram.ravishankar@amd.com,shrey.ajmera@amd.com,yan.sun3@amd.com" \
     vendor="Advanced Micro Devices, Inc." \
     version="latest" \
     release="latest" \
-    OS="registry.access.redhat.com/ubi9/ubi-minimal:9.4" \
+    OS="registry.access.redhat.com/ubi9/ubi-minimal:9.7" \
     summary="Device Config Manager (DCM) manages AMD device configurations, starting with GPU partitioning, and uses a Kubernetes config-map associated with a DCM daemonset." \
     description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
 

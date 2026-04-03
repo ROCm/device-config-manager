@@ -1,8 +1,6 @@
 module github.com/ROCm/device-config-manager
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25.8
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
@@ -155,3 +153,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace golang.org/x/oauth2 v0.23.0 => golang.org/x/oauth2 v0.27.0
