@@ -987,6 +987,22 @@ func NodeLabelWatcher() {
 
 func RetryPartition(ctx context.Context, selectedProfile string) {
 	defer wg.Done()
+
+	// Set the state label to "in-progress" immediately when profile change begins
+	if kc != nil && nodeName != "" {
+		err := kc.AddNodeLabel(nodeName, globals.StateLabelKey, "in-progress")
+		if err != nil {
+			log.Printf("Error setting in-progress state label: %s\n", err.Error())
+		} else {
+			log.Printf("Set gpu-config-profile-state to 'in-progress' for profile: %s\n", selectedProfile)
+			// Generate in-progress event with profile name
+			generateK8sEvent(nil, globals.K8EventPartitionInProgress, types.PartitionStatus{
+				SelectedProfile: selectedProfile,
+				Reason:          fmt.Sprintf("Starting partition process for profile: %s", selectedProfile),
+			})
+		}
+	}
+
 	expiration := time.Now().Add(30 * time.Minute)
 	count := 1
 	var services partition_pb.GPUClientSystemdServices

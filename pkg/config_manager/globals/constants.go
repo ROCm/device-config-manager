@@ -37,6 +37,7 @@ const (
 	K8EventSuccessfullyPartitioned = "SuccessfullyPartitioned"
 	K8EventPartitionNotNeeded      = "RequestedPartitionConfigAlreadyExists"
 	K8EventPartitionRetrying       = "PartitionRetrying"
+	K8EventPartitionInProgress     = "PartitionInProgress"
 	K8EventConfigMapNotPresent     = "ConfigMapNotPresent"
 	K8EventInvalidJSONInConfigMap  = "InvalidJSONInConfigMap"
 	K8EventAMDSMIAPIFailure        = "AMDSMIAPIFailure"
