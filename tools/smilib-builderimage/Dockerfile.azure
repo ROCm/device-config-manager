@@ -7,7 +7,7 @@ ENV RPM_BUILD="amd-smi-lib-*99999-local*.rpm"
 
 WORKDIR /usr/src/github.com/ROCm/device-config-manager/libamdsmi
 
-RUN tdnf clean all && tdnf install -y findutils build-essential cmake file git gcc gcc-c++ libdrm-devel && \
+RUN tdnf clean all && tdnf install -y ca-certificates findutils build-essential cmake file git gcc gcc-c++ libdrm-devel && \
     rm -rf /var/cache/yum && rm -rf /var/cache/dnf && tdnf clean all
 
 ADD tools/smilib-builderimage/entrypoint.sh /usr/src/github.com/entrypoint.sh

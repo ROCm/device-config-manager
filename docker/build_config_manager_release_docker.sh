@@ -86,9 +86,14 @@ sleep 5
 cp -r $TOP_DIR/assets/amd_smi_lib/x86_64/RHEL9/lib $TOP_DIR/docker/smilib
 cp $TOP_DIR/bin/device-config-manager-$UBUNTU_VERSION $TOP_DIR/docker/device-config-manager
 
-if [ $PUBLISH_IMAGE == 1 ]; then
+ROCM_TARBALL_ARGS=""
+if [ -n "${ROCM_TARBALL_URL:-}" ]; then
+    ROCM_TARBALL_ARGS="--build-arg ROCM_TARBALL_URL=${ROCM_TARBALL_URL}"
+fi
+
+if [ "$PUBLISH_IMAGE" == "1" ]; then
     echo "publishing dcm image to $IMAGE_URL"
-    docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL -f Dockerfile && docker push $IMAGE_URL
+    docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL $ROCM_TARBALL_ARGS -f Dockerfile && docker push $IMAGE_URL
     if [ $? -eq 0 ]; then
         echo "Successfully published image $IMAGE_URL"
     else
@@ -97,8 +102,8 @@ if [ $PUBLISH_IMAGE == 1 ]; then
     fi
 else
     echo "building dcm image to $DOCKER_IMAGE_NAME"
-    docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL -f Dockerfile && docker save -o config-manager-$VER.tar $IMAGE_URL
-    if [ $? -eq 0 ]; then
+    docker build -t $IMAGE_URL . --label HOURLY_TAG=$HOURLY_TAG_LABEL $ROCM_TARBALL_ARGS -f Dockerfile && docker save -o config-manager-$VER.tar $IMAGE_URL
+    if [ "$?" -eq "0" ]; then
         gzip config-manager-$VER.tar
         mv config-manager-$VER.tar.gz config-manager-$VER.tgz
     else

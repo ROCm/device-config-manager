@@ -8,6 +8,7 @@ Config
 ConfigMap
 Configmap
 configmap
+DaemonSet
 DCM
 DPX
 DeviceConfig
