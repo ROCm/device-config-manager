@@ -90,6 +90,9 @@ ROCM_TARBALL_ARGS=""
 if [ -n "${ROCM_TARBALL_URL:-}" ]; then
     ROCM_TARBALL_ARGS="--build-arg ROCM_TARBALL_URL=${ROCM_TARBALL_URL}"
 fi
+if [ -n "${ROCM_VERSION:-}" ]; then
+    ROCM_TARBALL_ARGS="${ROCM_TARBALL_ARGS} --build-arg ROCM_VERSION=${ROCM_VERSION}"
+fi
 
 if [ "$PUBLISH_IMAGE" == "1" ]; then
     echo "publishing dcm image to $IMAGE_URL"

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Build libamd_smi.so from ROCm/rocm-systems (release/therock-7.12) projects/amdsmi.
+# Build libamd_smi.so from ROCm/rocm-systems (therock-7.13) projects/amdsmi.
 # Previously used the libamdsmi/ submodule (ROCm/amdsmi@release/rocm-rel-7.2).
 #
 # Environment variables (set by amdsmi-compile make target):
 #   REPO   - git repo URL (default: https://github.com/ROCm/rocm-systems.git)
-#   BRANCH - branch to checkout (default: release/therock-7.12)
-#   COMMIT - specific commit to pin, or HEAD (default: HEAD)
+#   BRANCH - branch/tag to checkout (default: therock-7.13)
+#   COMMIT - specific commit to pin, or HEAD (default: 79e85e1468f96a867108043c953e9547c13b4c5e)
 #   SUBDIR - subdirectory containing CMakeLists.txt (default: projects/amdsmi)
 
 REPO="${REPO:-https://github.com/ROCm/rocm-systems.git}"
-BRANCH="${BRANCH:-release/therock-7.12}"
-COMMIT="${COMMIT:-HEAD}"
+BRANCH="${BRANCH:-therock-7.13}"
+COMMIT="${COMMIT:-79e85e1468f96a867108043c953e9547c13b4c5e}"
 SUBDIR="${SUBDIR:-projects/amdsmi}"
 
 WORKROOT=/usr/src/github.com/ROCm/device-config-manager

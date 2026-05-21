@@ -113,21 +113,23 @@ DOCS_SPELLCHECK_CONFIG ?= .spellcheck.yaml
 
 # library branch to build amdsmi libraries
 AMDSMI_REPO   ?= https://github.com/ROCm/rocm-systems.git
-AMDSMI_BRANCH ?= release/therock-7.12
-AMDSMI_COMMIT ?= 769135f77f91c2848871c496ffa04e6230ea3674
+AMDSMI_BRANCH ?= therock-7.13
+AMDSMI_COMMIT ?= 79e85e1468f96a867108043c953e9547c13b4c5e
 AMDSMI_SUBDIR ?= projects/amdsmi
 PROJECT_VERSION ?= "1.4.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?=
+ROCM_TARBALL_URL ?= https://repo.amd.com/rocm/tarball-multi-arch/therock-dist-linux-multiarch-7.13.0.tar.gz
+ROCM_VERSION ?= 7.13.0
 
 export AMDSMI_REPO
 export AMDSMI_BRANCH
 export AMDSMI_COMMIT
 export AMDSMI_SUBDIR
 export ROCM_TARBALL_URL
+export ROCM_VERSION
 
 include Makefile.build
 include Makefile.compile
