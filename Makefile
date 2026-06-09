@@ -241,7 +241,7 @@ mod:
 	@touch ${TOP_DIR}/libamdsmi/go.mod
 	@echo "setting up go mod packages"
 	@go mod tidy
-	@go mod edit -go=1.25.8
+	@go mod edit -go=1.25.11
 	#CVE-2025-22868
 	@go mod edit -replace golang.org/x/oauth2@v0.23.0=golang.org/x/oauth2@v0.27.0
 	@go mod vendor
