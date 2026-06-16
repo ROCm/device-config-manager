@@ -16,6 +16,9 @@ CONTAINER_NAME:=${CUR_USER}_dcm-bld
 BUILD_CONTAINER ?= $(DOCKER_REGISTRY)/device-config-manager-build:$(DOCKER_BUILDER_TAG)
 CONTAINER_WORKDIR := /usr/src/github.com/ROCm/device-config-manager
 
+# In CI environments (e.g. GitHub Actions) there is no TTY, so omit -it flags.
+DOCKER_IT_FLAGS := $(if $(CI),,-it)
+
 # Dcm container environment
 DCM_IMAGE_TAG ?= latest
 DCM_IMAGE_NAME ?= device-config-manager
@@ -108,7 +111,7 @@ default: build-dev-container ## Quick start to build everything from docker shel
 
 .PHONY: docker-shell
 docker-shell:
-	docker run --rm -it --privileged \
+	docker run --rm $(DOCKER_IT_FLAGS) --privileged \
 		--name ${CONTAINER_NAME} \
 		-e "USER_NAME=$(shell whoami)" \
 		-e "USER_UID=$(shell id -u)" \
@@ -124,7 +127,7 @@ docker-shell:
 
 .PHONY: docker-compile
 docker-compile:
-	docker run --rm -it --privileged \
+	docker run --rm $(DOCKER_IT_FLAGS) --privileged \
 		--name ${CONTAINER_NAME} \
 		-e "USER_NAME=$(shell whoami)" \
 		-e "USER_UID=$(shell id -u)" \
