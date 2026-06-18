@@ -22,12 +22,12 @@ DOCKER_IT_FLAGS := $(if $(CI),,-it)
 # Dcm container environment
 DCM_IMAGE_TAG ?= latest
 DCM_IMAGE_NAME ?= device-config-manager
-RHEL_BASE_MIN_IMAGE ?= registry.access.redhat.com/ubi9/ubi-minimal:9.4
+RHEL_BASE_MIN_IMAGE ?= registry.access.redhat.com/ubi9/ubi-minimal:9.7
 BUILD_DATE ?= $(shell date   +%Y-%m-%dT%H:%M:%S%z)
 GIT_COMMIT ?= $(shell git rev-list -1 HEAD --abbrev-commit)
 VERSION ?=$(RELEASE)
 
-RHEL_BASE_IMAGE ?= registry.access.redhat.com/ubi9/ubi:9.4
+RHEL_BASE_IMAGE ?= registry.access.redhat.com/ubi9/ubi:9.7
 # RHEL BaseOS, AppStream, CRB repository base image
 RHEL_REPO_URL ?= https://cdn.redhat.com
 
