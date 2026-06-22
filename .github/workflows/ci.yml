@@ -2,11 +2,11 @@ name: Build
 
 on:
   pull_request:
-    branches:
-    - '**'
+    types: [labeled, synchronize]
 
 jobs:
   build:
+    if: contains(github.event.pull_request.labels.*.name, 'CI-Run')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
