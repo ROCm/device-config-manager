@@ -2,8 +2,11 @@ name: Build
 
 on:
   pull_request:
-    branches:
-    - '**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
