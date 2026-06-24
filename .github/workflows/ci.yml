@@ -3,10 +3,15 @@ name: Build
 on:
   pull_request:
     types: [labeled, synchronize]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    if: contains(github.event.pull_request.labels.*.name, 'CI-Run')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'CI-Run')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
