@@ -1,4 +1,3 @@
-AINIC
 AMDSMI
 APIs
 CPX
