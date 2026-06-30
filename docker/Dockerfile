@@ -10,8 +10,18 @@ LABEL name="device-config-manager" \
     description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
 
 # unused for now revisit
-ARG ROCM_VERSION=7.2.1
-ARG AMDGPU_VERSION=7.2.1
+ARG ROCM_VERSION=7.14.0rc0
+ARG AMDGPU_VERSION=7.14.0rc0
+# S3 therock nightly tarball (optional). Set ROCM_TARBALL_URL to install ROCm
+# from a therock tarball instead of repo.radeon.com.
+ARG ROCM_TARBALL_URL=""
+
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/amd/bin/:/opt/rocm/bin/
+# /home/amd/lib holds the LD_PRELOADed libamd_smi (26.5.0) + its rocm_sysdeps netlink
+# DT_NEEDEDs (mnl, nl_3, nl_genl_3). /opt/rocm-${ROCM_VERSION}/lib/rocm_sysdeps/lib is
+# needed for therock tarball builds (librocm_sysdeps_drm.so.2 etc.); for repo.radeon.com
+# builds it is a no-op.
+ENV LD_LIBRARY_PATH=/home/amd/lib:/opt/rocm/lib:/opt/rocm-${ROCM_VERSION}/lib/rocm_sysdeps/lib:$LD_LIBRARY_PATH
 
 ADD rhelrepofiles/amdgpu.repo /etc/yum.repos.d/amdgpu.repo 
 ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo
