@@ -13,16 +13,18 @@
   - Enhanced driver reload support for ROCm 7.0.x with KMM (Kernel Module Management)
 
 ### Platform Support
+
 ROCm 7.1.x, 7.2.x
 
 ## v1.4.0
 
 ### Release Highlights
 
- - **MI35X Support**
-    - Add support for MI35X series GPUs to enable the configuration of GPU partitions.
+- **MI35X Support**
+  - Add support for MI35X series GPUs to enable the configuration of GPU partitions.
 
 ### Platform Support
+
 ROCM 7.0.x
 
 ## v1.3.0
@@ -40,4 +42,5 @@ ROCM 7.0.x
     - Users can also check the k8s events raised from DCM pod to check the partition status
 
 ### Platform Support
+
 ROCm 6.4.x

@@ -3,9 +3,11 @@
 This topic provides an overview of troubleshooting options for Device Config Manager.
 
 ## Logs
+
 You can view the container logs by executing the following command:
 
 ### K8s deployment
+
 ```bash
 kubectl logs -n <namespace> <configmanager-container-on-node>
 ```

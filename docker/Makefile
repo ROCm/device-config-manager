@@ -9,13 +9,15 @@ IMG ?= $(IMAGE_TAG_BASE):$(IMAGE_TAG)
 DOCKER_CONTAINER_IMG = $(IMAGE_NAME)-$(IMAGE_TAG)
 HOURLY_TAG_LABEL ?= latest
 
+ROCM_TARBALL_URL ?=
+
 .PHONY: docker
 docker:
 	@echo "building amd config manager docker container"
 	@echo "HOURLY_TAG : $(HOURLY_TAG_LABEL)"
-	@TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(UBUNTU_VERSION) HOURLY_TAG_LABEL=$(HOURLY_TAG_LABEL) ./build_config_manager_release_docker.sh -s
+	@TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(UBUNTU_VERSION) HOURLY_TAG_LABEL=$(HOURLY_TAG_LABEL) VER=$(VER) ROCM_TARBALL_URL=$(ROCM_TARBALL_URL) ./build_config_manager_release_docker.sh -s
 
 docker-publish:
 	@echo "publishing amd config manager docker container"
 	@echo "HOURLY_TAG : $(HOURLY_TAG_LABEL)"
-	@TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(UBUNTU_VERSION) HOURLY_TAG_LABEL=$(HOURLY_TAG_LABEL) ./build_config_manager_release_docker.sh -p
+	@TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(UBUNTU_VERSION) HOURLY_TAG_LABEL=$(HOURLY_TAG_LABEL) VER=$(VER) ROCM_TARBALL_URL=$(ROCM_TARBALL_URL) ./build_config_manager_release_docker.sh -p

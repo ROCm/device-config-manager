@@ -56,6 +56,27 @@ UBUNTU_VERSION_NUMBER = 24.04
 UBUNTU_LIBDIR = UBUNTU24
 endif
 
+ifneq (,$(findstring collab-,$(RELEASE)))
+#remove collab- prefix from tag
+DEBIAN_VERSION := $(shell echo "$(RELEASE)" | sed 's/^collab-//')
+else ifneq (,$(findstring dcm-,$(RELEASE)))
+#remove dcm-v prefix from tag
+DEBIAN_VERSION := $(shell echo "$(RELEASE)" | sed 's/^dcm-v//')
+else ifneq (,$(findstring v,$(RELEASE)))
+#remove prefix for release tag
+DEBIAN_VERSION := $(shell echo "$(RELEASE)" | sed 's/^v//')
+else
+DEBIAN_VERSION := 1.0.0
+endif
+
+BUILD_PKG_PATH = ${TOP_DIR}/build/${UBUNTU_LIBDIR}
+DEBIAN_CONTROL = ${TOP_DIR}/debian/DEBIAN/control
+BUILD_VER_ENV = ${DEBIAN_VERSION}~$(UBUNTU_VERSION_NUMBER)
+
+AMD_SMI_LIBS := ${ASSETS_PATH}/amd_smi_lib/x86_64/${UBUNTU_LIBDIR}/lib
+PKG_PATH := ${TOP_DIR}/debian/usr/local/bin
+PROTOS_PATH := $(TOP_DIR)/proto
+
 # External repo builders
 AMDSMI_BUILDER_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:rhel9
 AMDSMI_BUILDER_UB22_IMAGE ?= ${DOCKER_REGISTRY}/amdsmi-builder-dcm:ub22
@@ -86,10 +107,15 @@ export AMDSMI_BUILDER_AZURE_IMAGE
 DOCS_DIR := ${TOP_DIR}/docs
 BUILD_DIR := $(DOCS_DIR)/_build
 HTML_DIR := $(BUILD_DIR)/html
+DOCS_MARKDOWNLINTCONFIG ?= docs/.markdownlint.yaml
+DOCS_MD_GLOB ?= "**/*.md"
+DOCS_SPELLCHECK_CONFIG ?= .spellcheck.yaml
 
 # library branch to build amdsmi libraries
-AMDSMI_BRANCH ?= rocm-7.2.1
-AMDSMI_COMMIT ?= 1e91f3c1527617066f50c22f9ec4368fe82e1a3c
+AMDSMI_REPO   ?= https://github.com/ROCm/rocm-systems.git
+AMDSMI_BRANCH ?= therock-7.13
+AMDSMI_COMMIT ?= 79e85e1468f96a867108043c953e9547c13b4c5e
+AMDSMI_SUBDIR ?= projects/amdsmi
 PROJECT_VERSION ?= "1.4.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
@@ -101,6 +127,9 @@ ROCM_VERSION ?= 7.14.0rc0
 export AMDSMI_REPO
 export AMDSMI_BRANCH
 export AMDSMI_COMMIT
+export AMDSMI_SUBDIR
+export ROCM_TARBALL_URL
+export ROCM_VERSION
 
 include Makefile.build
 include Makefile.compile
@@ -167,11 +196,11 @@ dcm-st:
 
 .PHONY: dcm-docker
 dcm-docker:
-	${MAKE} -C docker TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(RHEL_VERSION) UBUNTU_LIBDIR=$(RHEL_LIBDIR)
+	${MAKE} -C docker TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(RHEL_VERSION) UBUNTU_LIBDIR=$(RHEL_LIBDIR) ROCM_TARBALL_URL=$(ROCM_TARBALL_URL)
 
 .PHONY: docker-publish
 docker-publish:
-	${MAKE} -C docker docker-publish TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(RHEL_VERSION) UBUNTU_LIBDIR=$(RHEL_LIBDIR)
+	${MAKE} -C docker docker-publish TOP_DIR=$(TOP_DIR) UBUNTU_VERSION=$(RHEL_VERSION) UBUNTU_LIBDIR=$(RHEL_LIBDIR) ROCM_TARBALL_URL=$(ROCM_TARBALL_URL)
 
 .PHONY:all
 all:
@@ -241,15 +270,12 @@ loadgpu:
 
 .PHONY:mod
 mod:
-	@echo "ignoring submodules libamdsmi"
-	@touch ${TOP_DIR}/libamdsmi/go.mod
 	@echo "setting up go mod packages"
 	@go mod tidy
-	@go mod edit -go=1.25.8
+	@go mod edit -go=1.25.11
 	#CVE-2025-22868
 	@go mod edit -replace golang.org/x/oauth2@v0.23.0=golang.org/x/oauth2@v0.27.0
 	@go mod vendor
-	@rm ${TOP_DIR}/libamdsmi/go.mod
 
 .PHONY:checks
 checks: fmt
@@ -260,8 +286,7 @@ e2e:
 
 .PHONY: update-submodules
 update-submodules:
-	git submodule sync --recursive
-	git submodule update --init --remote --recursive
+	git submodule update --remote --recursive
 
 .PHONY: build-amdsmi-all
 build-amdsmi-all:
@@ -291,6 +316,19 @@ docs: dep-docs
 
 clean-docs:
 	rm -rf $(BUILD_DIR)
+
+.PHONY: docs-lint-markdown
+docs-lint-markdown:
+	markdownlint-cli2 $(DOCS_MD_GLOB) --config $(DOCS_MARKDOWNLINTCONFIG)
+
+.PHONY: docs-lint-spelling
+docs-lint-spelling:
+	pyspelling -c $(DOCS_SPELLCHECK_CONFIG)
+
+.PHONY: docs-lint
+docs-lint: ## Run docs Markdown lint + spelling (full ROCm-style docs lint).
+	${MAKE} docs-lint-markdown
+	${MAKE} docs-lint-spelling
 
 .PHONY: gopkglist
 gopkglist:

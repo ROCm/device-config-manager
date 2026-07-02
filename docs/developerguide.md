@@ -5,6 +5,7 @@ This document provides build instructions and guidance for developers working on
 ## Git submodule setup
 
 Make sure to update the submodules on every pull from the repository.
+
 ```bash
 git submodule update --init --recursive
 ```
@@ -25,6 +26,7 @@ Before starting, ensure you have Docker installed and running with the user perm
 ## Quick Start
 
 To quickly build everything using Docker:
+
 ```bash
 make default
 ```
@@ -53,6 +55,7 @@ make all
 ```
 
 This command builds:
+
 - AMD Device Config Manager
 - Proto-generated code
 - AMD Device Config Manager docker
@@ -87,6 +90,7 @@ STATUS: deployed
 REVISION: 1
 TEST SUITE: None
 ```
+
 - This internally builds the helm-charts of DCM and then installs the charts in `kube-amd-gpu` namespace.
 - DCM daemonset pod is now up and users can perform the partitioning using the labels approach as mentioned above.
 - Users can also try the `make helm-build` command to build the helm-charts.
@@ -116,54 +120,67 @@ go test -check.f Test00* -helmchart $(TOP_DIR)/helm-charts/ -test.timeout=30m -v
 ```
 
 ## Build AMD SMI
+
 This is a built out of [AMD SMI Lib](git@github.com:ROCm/amdsmi.git), to
 access AMD GPU hardware driver
 
-#### Build Container (one time)
+### Build Container (one time)
+
 ```bash
 make amdsmi-build
 ```
 
-#### Compile AMDSMI
+### Compile AMDSMI
+
 ```bash
 make amdsmi-compile
 ```
 
 ## Deploying Standalone DCM on a cluster
+
 - Create a cluster and setup a worker node to deploy DCM.
 - DCM pod can be deployed using it's independent helm-charts as a standalone daemonset without the need of a GPU Operator.
 - Steps to deploy:
-    - Populate values.yaml to specify image name, tag , nodeSelector, etc.
-        - Please find an example values.yaml file in [_helm-charts/values.yaml_](https://github.com/ROCm/device-config-manager/blob/main/helm-charts/values.yaml#L1)
-    - Run the below command to build the helm-chart using the values.yaml.
-    - `make helm-build`
+  - Populate values.yaml to specify image name, tag , nodeSelector, etc.
+    - Please find an example values.yaml file in [_helm-charts/values.yaml_](https://github.com/ROCm/device-config-manager/blob/main/helm-charts/values.yaml#L1)
+  - Run the below command to build the helm-chart using the values.yaml.
+  - `make helm-build`
 
 ### Partitioning GPUs using DCM
--  GPU on the node cannot be partitioned on the go, we need to bring down all daemonsets using the GPU resource before partitioning. Hence we need to taint the node and the partition.
+
+- GPU on the node cannot be partitioned on the go, we need to bring down all daemonsets using the GPU resource before partitioning. Hence we need to taint the node and the partition.
 - DCM pod comes with a toleration
-    - `key: amd-dcm , value: up , Operator: Equal, effect: NoExecute `
-    - User can specify additional tolerations if required
+  - `key: amd-dcm , value: up , Operator: Equal, effect: NoExecute`
+  - User can specify additional tolerations if required
 
 ### Steps for deploying DCM pod
+
 - Add tolerations to the required pods
 - Taint the node
 - Deploy the DCM pod using a custom resource file
 - Once partition is done, untaint the node
 
 #### Taint
--  To TAINT a specific node for partitioning the GPU:
+
+- To TAINT a specific node for partitioning the GPU:
+
 ```bash
 kubectl taint nodes asrock-126-b3-3b amd-dcm=up:NoExecute
 ```
+
 - To TAINT a node for partitioning in a `single node cluster`, we can use the `NoSchedule` effect rather than a `NoExecute` effect to prevent eviction of existing control-plane pods.
+
 ```bash
 kubectl taint nodes asrock-126-b3-3b amd-dcm=up:NoSchedule
 ```
+
 - Since DCM comes up with a toleration for `NoExecute` by default, user has to add an extra toleration to support the `NoSchedule` taint.
 
 #### Add toleration for the taint
--  Since tainting a node will bring down all pods/daemonsets, we need to add toleration to the pods to prevent it from getting evicted.
--  Add toleration to system level pods as well like flannel, proxy etc before tainting the node.
+
+- Since tainting a node will bring down all pods/daemonsets, we need to add toleration to the pods to prevent it from getting evicted.
+- Add toleration to system level pods as well like flannel, proxy etc before tainting the node.
+
 ```bash
 Example:
 kubectl get ds -n kube-flannel kube-flannel-ds -o yaml > fnl.yaml
@@ -178,15 +195,20 @@ tolerations:
         effect: "NoExecute" # Replace with NoSchedule for single node cluster
 amd@asrock-126-b3-3b:~$ kubectl apply -f nfd.yaml
 ```
+
 #### Deploy DCM using a custom resource file
--  Create a CR to bring up the DCM daemonset.
--  Sample CR can be found in [_example/deviceConfigs_example.yaml_](https://github.com/ROCm/device-config-manager/blob/main/example/deviceConfigs_example.yaml#L1)
+
+- Create a CR to bring up the DCM daemonset.
+- Sample CR can be found in [_example/deviceConfigs_example.yaml_](https://github.com/ROCm/device-config-manager/blob/main/example/deviceConfigs_example.yaml#L1)
 
 #### Untaint
+
 ```bash
 kubectl taint nodes asrock-126-b3-3b amd-dcm:NoExecute-
 ```
+
 - For single node cluster
+
 ```bash
 kubectl taint nodes asrock-126-b3-3b amd-dcm:NoSchedule-
 ```
