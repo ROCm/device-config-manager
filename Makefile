@@ -121,8 +121,8 @@ PROJECT_VERSION ?= "1.4.0"
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?= https://rocm.prereleases.amd.com/tarball-multi-arch/therock-dist-linux-multiarch-7.14.0rc0.tar.gz
-ROCM_VERSION ?= 7.14.0rc0
+ROCM_TARBALL_URL ?= https://rocm.prereleases.amd.com/tarball-multi-arch/therock-dist-linux-multiarch-7.14.0rc1.tar.gz
+ROCM_VERSION ?= 7.14.0rc1
 
 export AMDSMI_REPO
 export AMDSMI_BRANCH
