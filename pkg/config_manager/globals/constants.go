@@ -53,6 +53,15 @@ const (
 	KMMDriverRecoveryCheckInterval = 5 * time.Second
 )
 
+const (
+	// Per-GPU max wait for user-workload processes to release the GPU before
+	// issuing a partition command. Bounded so it stays inside the retry cadence;
+	// the outer RetryPartition loop covers longer evictions across passes.
+	GPUIdleWaitTimeout = 60 * time.Second
+	// Poll interval while waiting for the GPU process count to drain to zero.
+	GPUIdleCheckInterval = 5 * time.Second
+)
+
 // Map of AMD SMI status codes to their descriptions based on
 // https://rocm.docs.amd.com/projects/amdsmi/en/docs-6.3.0/doxygen/docBin/html/amdsmi_8h.html#ab05c37a8d1e512898eef2d25fb9fe06b
 var AmdsmiStatusStrings = map[int]string{
