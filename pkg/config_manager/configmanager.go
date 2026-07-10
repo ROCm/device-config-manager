@@ -278,6 +278,56 @@ func amdsmiGetProcessorType(processor_handle C.amdsmi_processor_handle) (C.proce
 	return processor_type, nil
 }
 
+// amdsmiGetGPUProcessCount returns the number of processes currently using the
+// GPU, as reported by the driver via amdsmi_get_gpu_process_list. Calling with a
+// nil list and max_processes==0 makes the API return the live process count in
+// max_processes (AMDSMI_STATUS_SUCCESS), so no buffer allocation is needed.
+func amdsmiGetGPUProcessCount(processor_handle C.amdsmi_processor_handle) (int, error) {
+	var max_processes C.uint32_t
+	ret := C.amdsmi_get_gpu_process_list(processor_handle, &max_processes, nil)
+	if ret != C.AMDSMI_STATUS_SUCCESS {
+		return 0, fmt.Errorf("amdsmi_get_gpu_process_list failed: %v", getAMDSMIStatusString(int(ret)))
+	}
+	return int(max_processes), nil
+}
+
+// waitForGPUIdle polls the GPU process count until it reaches zero or the
+// per-GPU timeout elapses. It is a best-effort gate: on API error or timeout it
+// returns and lets the caller proceed, since the outer RetryPartition loop is
+// the backstop for a device that is still busy. When the API under-reports
+// (count 0), this is a no-op and behavior matches pre-gate DCM.
+func waitForGPUIdle(processor_handle C.amdsmi_processor_handle, gpu_id int) {
+	count, err := amdsmiGetGPUProcessCount(processor_handle)
+	if err != nil {
+		log.Printf("GPU %d: could not read process list (%v); proceeding with partition", gpu_id, err)
+		return
+	}
+	if count == 0 {
+		return
+	}
+	log.Printf("GPU %d: %d process(es) still holding the device; waiting up to %v for release before partitioning", gpu_id, count, globals.GPUIdleWaitTimeout)
+	timeout := time.After(globals.GPUIdleWaitTimeout)
+	ticker := time.NewTicker(globals.GPUIdleCheckInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-timeout:
+			log.Printf("GPU %d: still busy after %v; proceeding (retry loop remains the backstop)", gpu_id, globals.GPUIdleWaitTimeout)
+			return
+		case <-ticker.C:
+			count, err := amdsmiGetGPUProcessCount(processor_handle)
+			if err != nil {
+				log.Printf("GPU %d: could not read process list during wait (%v); proceeding", gpu_id, err)
+				return
+			}
+			if count == 0 {
+				log.Printf("GPU %d: device released, proceeding with partition", gpu_id)
+				return
+			}
+		}
+	}
+}
+
 func createGPUIDList(filter_ids []uint32, totalGPUCount int) []int {
 	result := []int{}
 outer:
@@ -571,6 +621,12 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 
 			log.Println("Memory partition :")
 			partition_needed = true
+
+			// Best-effort gate: wait for user-workload processes to release this
+			// GPU before issuing the partition command, to avoid "Device busy"
+			// (AMDSMI_STATUS_BUSY) races during pod eviction. See GPUOP-909.
+			waitForGPUIdle(processor_handle, gpu_id)
+
 			if currentMemory != existingMemory {
 				// verify whether currentMemory is a supported memory partition type
 				supportedMemoryPartitions, err := getSupportedMemoryPartitionType(processor_handle)
@@ -645,12 +701,10 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 						populateGPUEventStatus(gpu_id, partitionType, "Pending", fmt.Sprintf("trying to recover the memory partition by reloading KMM driver"), idx)
 						partition_failed = retryMemoryPartitionWithWait(processor_handle, currentMemory, nodeName, kc)
 					}
-					if partition_failed {
-						err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
-						if err != nil {
-							log.Printf("Error adding status node label: %s\n", err.Error())
-						}
-					}
+					// Retryable failure (e.g. AMDSMI_STATUS_BUSY while the GPU is
+					// still held by an evicting workload): leave the state label at
+					// "in-progress". RetryPartition keeps retrying and writes
+					// "failure" only when its 30-min window expires. See GPUOP-909.
 				} else {
 					log.Println("Memory partition successful !!")
 					log.Printf("Updated Memory Type %v\n", updatedMemory)
@@ -696,10 +750,9 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 						// the corresponding GPU event and node label are already set above
 						return
 					}
-					err = kc.AddNodeLabel(nodeName, "dcm.amd.com/gpu-config-profile-state", "failure")
-					if err != nil {
-						log.Printf("Error adding status node label: %s\n", err.Error())
-					}
+					// Retryable failure (e.g. AMDSMI_STATUS_BUSY): leave the state
+					// label at "in-progress" and let RetryPartition keep retrying;
+					// it writes "failure" only on 30-min expiry. See GPUOP-909.
 					partition_failed = true
 				} else {
 					log.Println("Compute partition successful !!")
@@ -1041,6 +1094,12 @@ func RetryPartition(ctx context.Context, selectedProfile string) {
 		if time.Now().After(expiration) {
 			generateK8sEvent(errors.New("partition failed"), globals.K8EventPartitionFailed, partStatus)
 			log.Println("Retry loop expired after retrying for 30 mins")
+			// Authoritative failure write: retryable errors (e.g. "Device busy")
+			// leave the label at "in-progress" during the loop, so the label is
+			// set to "failure" here when the window expires. See GPUOP-909.
+			if err := kc.AddNodeLabel(nodeName, globals.StateLabelKey, "failure"); err != nil {
+				log.Printf("Error adding status node label: %s\n", err.Error())
+			}
 			utils.StartServiceHandler(serviceList)
 			return
 		}
