@@ -24,7 +24,7 @@ nodeSelector: {}
 
 image:
   repository: rocm/device-config-manager
-  tag: v1.3.0
+  tag: v1.5.0
   pullPolicy: Always
 
 # specify configmap name (mandatory)
@@ -37,6 +37,6 @@ configMap: "config-manager-config"
 make helm-build
 cd ./helm-charts
 helm install amd-gpu-operator \
-./device-config-manager-charts-v1.3.0.tgz -n kube-amd-gpu \ 
+./device-config-manager-charts-v1.5.0.tgz -n kube-amd-gpu \ 
 --create-namespace -f values.yaml
 ```

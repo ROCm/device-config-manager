@@ -116,7 +116,7 @@ AMDSMI_REPO   ?= https://github.com/ROCm/rocm-systems.git
 AMDSMI_BRANCH ?= therock-7.13
 AMDSMI_COMMIT ?= 79e85e1468f96a867108043c953e9547c13b4c5e
 AMDSMI_SUBDIR ?= projects/amdsmi
-PROJECT_VERSION ?= "1.4.0"
+PROJECT_VERSION ?= "1.5.0"
 
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
@@ -220,7 +220,7 @@ helm-build: helm-lint
 
 .PHONY: helm-install
 helm-install: helm-build
-	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.4.1.tgz -n kube-amd-gpu --create-namespace -f values.yaml
+	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.5.0.tgz -n kube-amd-gpu --create-namespace -f values.yaml
 
 .PHONY: helm-uninstall
 helm-uninstall:

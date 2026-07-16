@@ -12,7 +12,7 @@ To start the Device Config Manager along with the GPU Operator configure fields 
     enable: True
 
     # image for the device-config-manager container
-    image: "rocm/device-config-manager:v1.3.0"
+    image: "rocm/device-config-manager:v1.5.0"
 
     # image pull policy for config manager set to always to pull image of latest version
     imagePullPolicy: Always
