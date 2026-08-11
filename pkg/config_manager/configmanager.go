@@ -17,9 +17,9 @@ limitations under the License.
 package configmanager
 
 /*
-#cgo CFLAGS: -I/device-config-manager/build/assets/amd_smi
-#cgo LDFLAGS: -L/device-config-manager/build/assets -lamd_smi -ldrm_amdgpu -ldrm
-#include "/device-config-manager/build/assets/amdsmi.h"
+#cgo CFLAGS: -I${SRCDIR}/../../build/assets/amd_smi
+#cgo LDFLAGS: -L${SRCDIR}/../../build/assets -lamd_smi -ldrm_amdgpu -ldrm
+#include "amdsmi.h"
 */
 import "C"
 import (

@@ -1,0 +1,12 @@
+# Thin build image for compiling the DCM cgo binary.
+# Base is parameterized so opensource/CI pulls from Docker Hub while pensando
+# builds can override GOLANG_IMAGE to a mirror via dev.env (rate-limit safety).
+ARG GOLANG_IMAGE=golang:1.25-bookworm
+FROM ${GOLANG_IMAGE}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc make ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+WORKDIR /workspace

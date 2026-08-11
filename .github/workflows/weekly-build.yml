@@ -74,19 +74,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build dev container
-        run: make build-dev-container
-
-      - name: Build inside dev container
-        run: |
-          docker run --rm --privileged \
-            -e "GIT_COMMIT=$(git rev-list -1 HEAD --abbrev-commit)" \
-            -e "BUILD_DATE=$(date +%Y-%m-%dT%H:%M:%S%z)" \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "${{ github.workspace }}:/usr/src/github.com/ROCm/device-config-manager" \
-            -w /usr/src/github.com/ROCm/device-config-manager \
-            docker.io/rocm/device-config-manager-build:v1.0 \
-            bash -c "source ~/.bashrc && \
-              git config --global --add safe.directory /usr/src/github.com/ROCm/device-config-manager && \
-              make amdsmi-build-rhel && \
-              make all"
+      - name: Build
+        run: make default
