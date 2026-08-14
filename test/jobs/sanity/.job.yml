@@ -1,0 +1,40 @@
+---
+version: 2.0
+meta: {}
+
+image:
+  bind_dir: "/device-config-manager"
+  work_dir: "/device-config-manager"
+
+e2e-targets:
+  config-manager-k8s-pytest-sanity-devcfg-driver:
+    commands: [
+        "/bin/sh",
+        "-c",
+        "cat /warmd.json && cd /gpu-operator/tests/pytests && \
+         /gpu-operator/ci-internal/run_sanity.sh --app gpu-operator \
+         --registry direct --testbed /warmd.json --amdgpu-driver default-deviceconfig --module config_manager"
+    ]
+    owners: ["email:srivatsa.sangli@amd.com"]
+    tcp-ports: [5000]
+    area:
+    sub-area:
+    build-dependencies:
+      - build-device-config-manager-docker-ubi9
+    repo-dependencies:
+      /gpu-operator:
+        repository: https://github.com/pensando/gpu-operator
+        reference: main-437
+    resources:
+    - generic:
+      - type: GPUOP-Cluster
+        vendor: Pensando
+        count: 1
+        props:
+          - name: testbed-type
+            value: K8
+
+logfiles:
+  - /gpu-operator/tests/pytests/pytest_logs.tgz
+
+submodules: {}
