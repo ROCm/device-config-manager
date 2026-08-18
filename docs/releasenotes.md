@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.5.2
+
+- **Bug Fixes and Stability Improvements**
+
+## v1.5.1
+
+- **Bug Fixes and Stability Improvements**
+
 ## v1.5.0
 
 - **Bug Fixes and Stability Improvements**
