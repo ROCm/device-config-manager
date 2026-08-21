@@ -6,7 +6,7 @@ name: DCM Build
 
 on:
   schedule:
-    - cron: '15 * * * *'
+    - cron: '0 13 * * *'
 
   pull_request:
     branches:
@@ -34,9 +34,10 @@ on:
         type: boolean
         default: false
 
+
 concurrency:
-  group: dcm-build-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'schedule' && 'dcm-nightly' || github.event_name == 'pull_request' && format('dcm-pr-{0}', github.event.pull_request.number) || format('dcm-{0}-{1}', github.event_name, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'schedule' || github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -73,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          NIGHTLY_CDN_BASE="https://rocm.prereleases.amd.com/tarball-multi-arch"
+          NIGHTLY_CDN_BASE="https://rocm.nightlies.amd.com/tarball-multi-arch"
           PR_FALLBACK_URL=$(grep -m1 'ROCM_TARBALL_URL ?=' Makefile | awk '{print $NF}')
           DCM_VERSION=$(grep -m1 'PROJECT_VERSION ?=' Makefile | awk '{print $NF}' | tr -d '"')
 
@@ -144,6 +145,20 @@ jobs:
           key: build-ok-${{ github.sha }}-${{ steps.resolve.outputs.image_tag }}
           path: .build-marker
 
+  # Runs only when dedup skips the build — writes a summary explaining why.
+  skipped:
+    name: Already built — skipped
+    needs: resolve
+    if: needs.resolve.outputs.build_needed == 'false'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate skip summary
+        run: |
+          {
+            echo "## DCM Build — Skipped"
+            echo "Build already succeeded for SHA \`${{ github.sha }}\` + tag \`${{ needs.resolve.outputs.image_tag }}\`. No rebuild needed."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Builds DCM binary + runtime image via make default (matches ci.yml pattern).
   # Tarball is streamed via curl|tar during .stage-amdsmi — no 9 GB on disk.
   build:
@@ -166,7 +181,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dcm-image-${{ needs.resolve.outputs.image_tag }}
-          retention-days: 3
+          retention-days: 1
           path: docker/obj/config-manager-ubi9-latest.tgz
 
       - name: Mark build as successful
@@ -196,12 +211,14 @@ jobs:
           fi
 
       - name: Download build artifact
+        if: ${{ needs.resolve.outputs.skip_upload == 'false' }}
         uses: actions/download-artifact@v4
         with:
           name: dcm-image-${{ needs.resolve.outputs.image_tag }}
           path: artifacts
 
       - name: Rename artifact with dcm-version + identifier
+        if: ${{ needs.resolve.outputs.skip_upload == 'false' }}
         env:
           IMAGE_TAG:   ${{ needs.resolve.outputs.image_tag }}
           DCM_VERSION: ${{ needs.resolve.outputs.dcm_version }}
