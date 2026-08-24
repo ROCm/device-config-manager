@@ -33,6 +33,11 @@ on:
         required: false
         type: boolean
         default: false
+      force_rebuild:
+        description: 'Force rebuild even if already built for this SHA + tarball'
+        required: false
+        type: boolean
+        default: false
 
 
 concurrency:
@@ -60,7 +65,7 @@ jobs:
       s3_prefix:        ${{ steps.resolve.outputs.s3_prefix }}
       skip_upload:      ${{ steps.resolve.outputs.skip_upload }}
       dcm_version:      ${{ steps.resolve.outputs.dcm_version }}
-      build_needed:    ${{ steps.dedup.outputs.cache-hit != 'true' }}
+      build_needed:    ${{ steps.dedup.outputs.cache-hit != 'true' || inputs.force_rebuild == true }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -256,6 +261,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Upload artifact to S3
+        id: s3-upload
         if: ${{ needs.resolve.outputs.skip_upload == 'false' }}
         env:
           S3_PREFIX: ${{ needs.resolve.outputs.s3_prefix }}
@@ -267,6 +273,29 @@ jobs:
           echo "Uploaded to s3://${S3_BUCKET}/${S3_PREFIX}/"
           aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --human-readable || true
 
+      - name: Login to Docker Hub
+        if: ${{ always() && needs.resolve.outputs.skip_upload == 'false' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push image to amdpsdo registry
+        id: registry-push
+        if: ${{ always() && needs.resolve.outputs.skip_upload == 'false' }}
+        env:
+          IMAGE_TAG:   ${{ needs.resolve.outputs.image_tag }}
+          DCM_VERSION: ${{ needs.resolve.outputs.dcm_version }}
+        run: |
+          set -euo pipefail
+          PUSH_TAG="${DCM_VERSION}-${IMAGE_TAG}"
+
+          docker load < "artifacts/config-manager-${PUSH_TAG}.tgz"
+          docker tag "docker.io/rocm/device-config-manager:${IMAGE_TAG}" \
+                     "docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
+          docker push "docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
+          echo "Pushed docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
+
       - name: Generate build summary
         if: always()
         env:
@@ -275,6 +304,8 @@ jobs:
           S3_PREFIX:        ${{ needs.resolve.outputs.s3_prefix }}
           SKIP_UPLOAD:      ${{ needs.resolve.outputs.skip_upload }}
           BUILD_RESULT:     ${{ needs.build.result }}
+          S3_RESULT:        ${{ steps.s3-upload.outcome }}
+          REGISTRY_RESULT:  ${{ steps.registry-push.outcome }}
         run: |
           {
             echo "## DCM Build — \`${IMAGE_TAG}\`"
@@ -285,6 +316,7 @@ jobs:
             echo "| ROCm tarball | \`${ROCM_TARBALL_URL}\` |"
             echo "| Image tag | \`${IMAGE_TAG}\` |"
             echo "| Build | ${BUILD_RESULT} |"
+            echo "| S3 upload | ${S3_RESULT:-skipped} |"
+            echo "| Registry push | ${REGISTRY_RESULT:-skipped} |"
             echo "| S3 prefix | \`s3://${S3_BUCKET}/${S3_PREFIX}/\` |"
-            echo "| Upload skipped | \`${SKIP_UPLOAD}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
