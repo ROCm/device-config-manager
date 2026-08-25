@@ -11,8 +11,8 @@ LABEL name="device-config-manager" \
     description="Device Config Manager (DCM) manages AMD device configurations, users provide the necessary GPU configurations through a Kubernetes config-map, which is then associated with the DCM daemonset to ensure proper application and management of these configurations across the cluster."
 
 # unused for now revisit
-ARG ROCM_VERSION=10.0.0rc3
-ARG AMDGPU_VERSION=10.0.0rc3
+ARG ROCM_VERSION=10.0.0rc4
+ARG AMDGPU_VERSION=10.0.0rc4
 # S3 therock nightly tarball (optional). Set ROCM_TARBALL_URL to install ROCm
 # from a therock tarball instead of repo.radeon.com.
 ARG ROCM_TARBALL_URL=""

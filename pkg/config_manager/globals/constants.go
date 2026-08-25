@@ -53,6 +53,10 @@ const (
 	KMMDriverRecoveryCheckInterval = 5 * time.Second
 )
 
+// Max wait for the non-KMM inbox amdgpu reload (modprobe -r + modprobe) that
+// applies a memory-partition change.
+const InboxDriverReloadTimeout = 5 * time.Minute
+
 const (
 	// Per-GPU max wait for user-workload processes to release the GPU before
 	// issuing a partition command. Bounded so it stays inside the retry cadence;
