@@ -142,8 +142,8 @@ PROJECT_VERSION ?= "1.5.2"
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?= https://rocm.prereleases.amd.com/tarball-multi-arch/therock-dist-linux-multiarch-10.0.0rc3.tar.gz
-ROCM_VERSION ?= 10.0.0rc3
+ROCM_TARBALL_URL ?= https://rocm.prereleases.amd.com/tarball-multi-arch/therock-dist-linux-multiarch-10.0.0rc4.tar.gz
+ROCM_VERSION ?= 10.0.0rc4
 
 # 1 = extract amdsmi.h + libamd_smi.so + rocm_sysdeps from the therock tarball
 #     (ROCM_TARBALL_URL) at build time (default; committed assets were removed).
