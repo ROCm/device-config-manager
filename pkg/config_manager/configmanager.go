@@ -679,12 +679,11 @@ func amdSMIHelper(selectedProfile string, profile *partition_pb.GPUConfigProfile
 				// otherwise the manual reload would enable the inbox driver back but we expect KMM managed driver back
 				// the retryMemoryPartitionWithWait() will handle the KMM managed driver reload
 				if !kmmDriverEnabled {
-					// behavior change from ROCM 7.0.0 , amdsmi_set_gpu_memory_partition API does not reload drivers automatically
-					// need to call a reload API seperately
+					// set_gpu_memory_partition does not reload the driver; ROCm 10.0 dropped
+					// amdsmi_gpu_driver_reload(), so reload the inbox amdgpu module directly.
 					log.Println("Reloading the drivers post amdsmi_set_gpu_memory_partition() call")
-					ret_driver_reload := C.amdsmi_gpu_driver_reload()
-					if ret_driver_reload != C.AMDSMI_STATUS_SUCCESS {
-						log_e.Errorf("Failed to reload driver %v \n", partition_err_reason)
+					if err := reloadInboxAmdgpuDriver(); err != nil {
+						log_e.Errorf("Failed to reload driver %v \n", err)
 					}
 				}
 				updatedMemory := getCurrentGPUMemoryPartition(processor_handle)
@@ -1160,6 +1159,20 @@ func TriggerRetryLoop(selectedProfile string, funcname string) {
 	default:
 		log.Println("Retry loop already pending, ignoring trigger")
 	}
+}
+
+// reloadInboxAmdgpuDriver reloads the inbox amdgpu module to apply a pending
+// memory-partition change (non-KMM path); replaces amdsmi_gpu_driver_reload() removed in ROCm 10.0.
+func reloadInboxAmdgpuDriver() error {
+	ctx, cancel := context.WithTimeout(context.Background(), globals.InboxDriverReloadTimeout)
+	defer cancel()
+	if out, err := exec.CommandContext(ctx, "modprobe", "-rv", "amdgpu").CombinedOutput(); err != nil {
+		return fmt.Errorf("modprobe -rv amdgpu failed: %v, output: %s", err, string(out))
+	}
+	if out, err := exec.CommandContext(ctx, "modprobe", "-v", "amdgpu").CombinedOutput(); err != nil {
+		return fmt.Errorf("modprobe -v amdgpu failed: %v, output: %s", err, string(out))
+	}
+	return nil
 }
 
 func memoryPartitionHandling() bool {
