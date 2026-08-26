@@ -172,8 +172,7 @@ jobs:
             echo "Build already succeeded for SHA \`${{ github.sha }}\` + tag \`${{ needs.resolve.outputs.image_tag }}\`. No rebuild needed."
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Builds DCM binary + runtime image via make default (matches ci.yml pattern).
-  # Tarball is streamed via curl|tar during .stage-amdsmi — no 9 GB on disk.
+  # Builds DCM container image.
   build:
     name: Build
     needs: resolve
@@ -204,8 +203,7 @@ jobs:
           key: build-ok-${{ github.sha }}-${{ needs.resolve.outputs.image_tag }}
           path: .build-marker
 
-  # Downloads build artifact, renames with dcm-version, uploads to S3,
-  # Dispatch to orchestrator will be added when auth is configured.
+  # Downloads build artifact, renames with dcm-version + identifier, uploads to S3 and Docker Hub.
   summary:
     name: Summary + upload
     needs: [resolve, build]
