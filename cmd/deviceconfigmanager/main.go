@@ -29,6 +29,7 @@ var (
 	Version   string
 	BuildDate string
 	GitCommit string
+	ROCmCommit string
 )
 
 func main() {
@@ -37,6 +38,8 @@ func main() {
 	log.Printf("Version : %v", Version)
 	log.Printf("BuildDate: %v", BuildDate)
 	log.Printf("GitCommit: %v", GitCommit)
+	log.Printf("ROCmCommit: %v", ROCmCommit)
+	log.Printf("#####################################")
 
 	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
 		log.Println("Running inside a Kubernetes pod")
