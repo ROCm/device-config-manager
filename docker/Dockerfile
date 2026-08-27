@@ -34,12 +34,16 @@ ADD rhelrepofiles/rocm.repo /etc/yum.repos.d/rocm.repo
 ADD install-rocm-tarball.sh /usr/local/bin/install-rocm-tarball.sh
 RUN chmod +x /usr/local/bin/install-rocm-tarball.sh
 
-RUN microdnf clean all && \
+# ROCM_TARBALL_URL is now only a MODE SELECTOR (non-empty = tarball
+# mode); the tarball data comes from the bind-mounted `rocm-tarball` context, so
+# install-rocm-tarball.sh reads a local file and no wget is needed.
+RUN --mount=type=bind,from=rocm-tarball,source=therock.tar.gz,target=/tmp/rocm.tar.gz \
+   microdnf clean all && \
    microdnf update -y && \
    if [ -n "${ROCM_TARBALL_URL}" ]; then \
-      microdnf install -y wget tar gzip findutils sudo procps file libcap-devel vim net-tools kmod \
+      microdnf install -y tar gzip findutils sudo procps file libcap-devel vim net-tools kmod \
          iptables-libs dbus dbus-tools pciutils jq python3 && \
-      /usr/local/bin/install-rocm-tarball.sh "${ROCM_VERSION}" "${ROCM_TARBALL_URL}" /usr/lib64; \
+      /usr/local/bin/install-rocm-tarball.sh "${ROCM_VERSION}" /tmp/rocm.tar.gz /usr/lib64; \
    else \
       microdnf install -y sudo procps file libcap-devel libdrm-amdgpu vim net-tools kmod \
          iptables-libs dbus dbus-tools pciutils jq && \

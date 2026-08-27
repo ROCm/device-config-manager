@@ -26,11 +26,19 @@ ROCM_TARBALL_URL="${2:?ROCM_TARBALL_URL required}"
 LIBDRM_SYMLINK_DIR="${3:-/opt/rocm/lib}"
 
 echo "=== ROCm install: S3 tarball (${ROCM_VERSION}) ==="
-echo "    URL: ${ROCM_TARBALL_URL}"
 echo "    libdrm symlink dir: ${LIBDRM_SYMLINK_DIR}"
 
 mkdir -p "/opt/rocm-${ROCM_VERSION}"
-wget -qO- "${ROCM_TARBALL_URL}" | tar -xzf - -C "/opt/rocm-${ROCM_VERSION}"
+# arg 2 may be a local file path (bind-mounted, preferred — downloaded
+# once on the host) or a URL (legacy fallback). Extract from the local file when
+# it exists; otherwise download.
+if [ -f "${ROCM_TARBALL_URL}" ]; then
+    echo "    source: local file (bind-mounted, no download)"
+    tar -xzf "${ROCM_TARBALL_URL}" -C "/opt/rocm-${ROCM_VERSION}"
+else
+    echo "    source: URL (download)"
+    wget -qO- "${ROCM_TARBALL_URL}" | tar -xzf - -C "/opt/rocm-${ROCM_VERSION}"
+fi
 
 # Prune unneeded content to reduce image size.
 # Static libs, headers, cmake/pkgconfig, docs, tests, benchmarks and sample
