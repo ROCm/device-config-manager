@@ -12,7 +12,11 @@ LABEL name="device-config-manager" \
 
 # unused for now revisit
 ARG ROCM_VERSION=10.0.0rc4
+# amdsmi source commit embedded in the ROCm tarball (amdsmi_cli/_version.py).
+ARG ROCM_COMMIT=
 ARG AMDGPU_VERSION=10.0.0rc4
+LABEL ROCM_VERSION="${ROCM_VERSION}" \
+    ROCM_COMMIT="${ROCM_COMMIT}"
 # S3 therock nightly tarball (optional). Set ROCM_TARBALL_URL to install ROCm
 # from a therock tarball instead of repo.radeon.com.
 ARG ROCM_TARBALL_URL=""

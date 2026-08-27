@@ -142,8 +142,10 @@ PROJECT_VERSION ?= "1.5.2"
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?= https://rocm.prereleases.amd.com/tarball-multi-arch/therock-dist-linux-multiarch-10.0.0rc4.tar.gz
-ROCM_VERSION ?= 10.0.0rc4
+ROCM_TARBALL_URL ?= https://stable.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.0.0.tar.gz
+ROCM_VERSION ?= 10.0.0
+# amdsmi commit auto-extracted from the fetched tarball; empty until fetched.
+ROCM_COMMIT = $(shell cat "$(ROCM_COMMIT_FILE)" 2>/dev/null)
 
 # The in-Docker wget of ROCM_TARBALL_URL is removed — the image reads the mounted
 # local file via the `rocm-tarball` build context. ROCM_TARBALL_DIR is the named
@@ -152,6 +154,7 @@ ROCM_VERSION ?= 10.0.0rc4
 ROCM_TARBALL_DIR := $(TOP_DIR)/build/rocm-tarball
 ROCM_TARBALL_FILE := therock.tar.gz
 ROCM_TARBALL_PATH := $(ROCM_TARBALL_DIR)/$(ROCM_TARBALL_FILE)
+ROCM_COMMIT_FILE := $(ROCM_TARBALL_DIR)/rocm-commit.txt
 # Needed whenever ROCM_TARBALL_URL is set (the image installs ROCm from it);
 # ROCM_TARBALL_DEP is empty for the repo.radeon.com path so nothing downloads.
 ifeq ($(strip $(ROCM_TARBALL_URL)),)
@@ -172,6 +175,7 @@ export AMDSMI_COMMIT
 export AMDSMI_SUBDIR
 export ROCM_TARBALL_URL
 export ROCM_VERSION
+export ROCM_COMMIT
 export AMDSMI_FROM_TARBALL
 export ROCM_TARBALL_DIR
 
@@ -203,7 +207,7 @@ clean:
 # exists (set ROCM_TARBALL_FORCE=1 to re-download). ROCM_TARBALL_DEP is empty for
 # the repo.radeon.com path so nothing downloads.
 .PHONY: rocm-tarball-fetch
-rocm-tarball-fetch: $(ROCM_TARBALL_DEP)
+rocm-tarball-fetch: $(ROCM_TARBALL_DEP) $(if $(ROCM_TARBALL_DEP),$(ROCM_COMMIT_FILE))
 
 $(ROCM_TARBALL_PATH):
 	@if [ -n "$(ROCM_TARBALL_FORCE)" ] || [ ! -s "$(ROCM_TARBALL_PATH)" ]; then \
@@ -213,6 +217,16 @@ $(ROCM_TARBALL_PATH):
 		mv -f $(ROCM_TARBALL_PATH).tmp $(ROCM_TARBALL_PATH); \
 	else \
 		echo "ROCm tarball already present: $(ROCM_TARBALL_PATH) (set ROCM_TARBALL_FORCE=1 to re-download)"; \
+	fi
+
+$(ROCM_COMMIT_FILE): $(ROCM_TARBALL_PATH)
+	@sha=$$(tar xzO -f "$(ROCM_TARBALL_PATH)" ./libexec/amdsmi_cli/_version.py 2>/dev/null \
+		| sed -n 's/.*+\([0-9a-f]\{7,40\}\).*/\1/p' | head -1); \
+	if [ -n "$$sha" ]; then \
+		echo "$$sha" > "$@"; \
+		echo "ROCm (amdsmi) commit extracted: $$sha -> $@"; \
+	else \
+		echo "WARN: could not extract amdsmi commit from tarball"; \
 	fi
 
 # Stage amdsmi (libamd_smi.so + rocm_sysdeps + amdsmi.h) into build/assets/ for the
@@ -260,7 +274,7 @@ dcm: .dcm-build-image .stage-amdsmi
 		$(DCM_BUILD_IMAGE) \
 		bash -c 'set -e; \
 			mkdir -p bin; \
-			go build -ldflags "-s -w -X main.Version=$(VERSION) -X main.GitCommit=$(GIT_COMMIT) -X main.BuildDate=$(BUILD_DATE)" \
+			go build -ldflags "-s -w -X main.Version=$(VERSION) -X main.GitCommit=$(GIT_COMMIT) -X main.BuildDate=$(BUILD_DATE) -X main.ROCmCommit=$(ROCM_COMMIT)" \
 				-o bin/device-config-manager-$(DISTRO) cmd/deviceconfigmanager/main.go'
 	@echo "Built bin/device-config-manager-$(DISTRO)"
 
@@ -293,6 +307,7 @@ dcm-docker: rocm-tarball-fetch
 		--build-arg RHEL_BASE_MIN_IMAGE=$(RHEL_BASE_MIN_IMAGE) \
 		--build-arg ROCM_TARBALL_URL=$(ROCM_TARBALL_URL) \
 		--build-arg ROCM_VERSION=$(ROCM_VERSION) \
+		$(if $(ROCM_COMMIT),--build-arg ROCM_COMMIT=$(ROCM_COMMIT)) \
 		--build-arg AMDSMI_FROM_TARBALL=$(AMDSMI_FROM_TARBALL) \
 		$(if $(ROCM_TARBALL_URL),--build-context rocm-tarball=$(ROCM_TARBALL_DIR)) \
 		--label HOURLY_TAG=$(HOURLY_TAG_LABEL) \
