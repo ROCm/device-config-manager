@@ -91,7 +91,7 @@ jobs:
               # Pick the latest nightly tarball from the CDN index by date suffix
               TARBALL_NAME=$(
                 curl -fsSL "${NIGHTLY_CDN_BASE}/" 2>/dev/null \
-                  | grep -oP 'therock-dist-linux-multiarch-\S+a\d{8}\.tar\.gz' \
+                  | grep -oP 'therock-dist-linux-multiarch-\d+\.\d+\.\d+a\d{8}\.tar\.gz' \
                   | sed 's/.*a\([0-9]\{8\}\)\.tar\.gz/\1 &/' \
                   | sort -rn \
                   | awk 'NR==1{print $2}'
@@ -124,7 +124,7 @@ jobs:
               TARBALL_URL="${INPUT_URL:-${PR_FALLBACK_URL}}"
               BASENAME=$(basename "${TARBALL_URL}" .tar.gz)
               IMAGE_TAG="${INPUT_IMAGE_TAG:-${BASENAME#therock-dist-linux-multiarch-}}"
-              SUFFIX="${IMAGE_TAG}-${GITHUB_RUN_NUMBER}"
+              SUFFIX="${IMAGE_TAG}-$(date +%Y%m%d%H%M)"
               S3_PREFIX="device-config-manager/pre-release/${DCM_VERSION}-${SUFFIX}"
               SKIP_UPLOAD="${INPUT_SKIP:-true}"
               SCENARIO="pre-release"
