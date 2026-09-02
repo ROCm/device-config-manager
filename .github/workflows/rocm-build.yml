@@ -106,7 +106,7 @@ jobs:
               TARBALL_URL="${INPUT_URL:-${PR_FALLBACK_URL}}"
               IMAGE_TAG="${DCM_VERSION}"
               SUFFIX=$(echo "${GITHUB_SHA}" | cut -c1-8)
-              S3_PREFIX="device-config-manager/pr-builds/${SUFFIX}"
+              S3_PREFIX=""
               SCENARIO="pull_request"
               ;;
 
