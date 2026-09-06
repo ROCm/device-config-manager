@@ -172,7 +172,7 @@ default: all ## Quick start: build binary + runtime image (Docker only)
 .PHONY:clean
 clean:
 	rm -rf pkg/configmanager/bin
-	rm -r $(TOP_DIR)/build/assets
+	rm -rf $(TOP_DIR)/build/assets
 
 # Unified DCM Build Targets
 # Selector: DISTRO=rhel9 (default) | ub22 | ub24
