@@ -1,7 +1,7 @@
 name: DCM Build
 
 # Builds DCM container image against a ROCm tarball.
-# Job graph: resolve → build → publish → validate → results
+# Job graph: read-version → resolve (shared) → build → publish (shared) → validate (shared) → results
 # Triggers: nightly (cron), PR (path-filtered), pre-release (workflow_dispatch)
 
 on:
@@ -34,135 +34,48 @@ on:
         type: boolean
         default: false
 
-
 concurrency:
   group: ${{ github.event_name == 'schedule' && 'dcm-nightly' || github.event_name == 'pull_request' && format('dcm-pr-{0}', github.event.pull_request.number) || format('dcm-{0}-{1}', github.event_name, github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'schedule' || github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
-  id-token: write   # OIDC → AWS
-  actions:  write   # GHA artifact upload/download
-
-env:
-  S3_BUCKET: ${{ vars.THEROCK_BUCKET_NAME }}
+  id-token: write
+  actions: write
 
 jobs:
 
-  # Detects trigger mode and resolves tarball URL, image tag, S3 prefix, and DCM version.
-  # Reads ROCM_TARBALL_URL and PROJECT_VERSION directly from the Makefile to stay in sync.
-  resolve:
-    name: Resolve tarball + image tag
+  read-version:
+    name: Read version from Makefile
     runs-on: ubuntu-24.04
     outputs:
-      rocm_tarball_url: ${{ steps.resolve.outputs.rocm_tarball_url }}
-      image_tag:        ${{ steps.resolve.outputs.image_tag }}
-      s3_prefix:        ${{ steps.resolve.outputs.s3_prefix }}
-      dcm_version:      ${{ steps.resolve.outputs.dcm_version }}
-      suffix:           ${{ steps.resolve.outputs.suffix }}
-      scenario:         ${{ steps.resolve.outputs.scenario }}
-      build_needed:     ${{ steps.dedup.outputs.cache-hit != 'true' || inputs.force_rebuild == true }}
+      version: ${{ steps.v.outputs.version }}
+      tarball_url: ${{ steps.v.outputs.tarball_url }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Resolve trigger inputs
-        id: resolve
-        env:
-          INPUT_URL:       ${{ inputs.rocm_tarball_url }}
-          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+      - uses: actions/checkout@v4
+      - id: v
         run: |
-          set -euo pipefail
+          echo "version=$(grep -m1 'PROJECT_VERSION ?=' Makefile | awk '{print $NF}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
+          echo "tarball_url=$(grep -m1 'ROCM_TARBALL_URL ?=' Makefile | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
 
-          NIGHTLY_CDN_BASE="https://nightly.repo.amd.com/rocm/core/tarball"
-          PR_FALLBACK_URL=$(grep -m1 'ROCM_TARBALL_URL ?=' Makefile | awk '{print $NF}')
-          DCM_VERSION=$(grep -m1 'PROJECT_VERSION ?=' Makefile | awk '{print $NF}' | tr -d '"')
+  resolve:
+    name: Resolve
+    needs: read-version
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-resolve.yml@main
+    with:
+      component: dcm
+      version: ${{ needs.read-version.outputs.version }}
+      tarball_url_default: ${{ needs.read-version.outputs.tarball_url }}
+      s3_component_prefix: device-config-manager
+      s3_bucket: ${{ vars.THEROCK_BUCKET_NAME }}
+      trigger_event: ${{ github.event_name }}
+      trigger_sha: ${{ github.sha }}
+      input_tarball_url: ${{ inputs.rocm_tarball_url }}
+      input_image_tag: ${{ inputs.image_tag }}
+      force_rebuild: ${{ inputs.force_rebuild || false }}
+    secrets:
+      ROCK_CI_S3_SECRET: ${{ secrets.ROCK_CI_S3_SECRET }}
 
-          case "${GITHUB_EVENT_NAME}" in
-
-            schedule)
-              # Pick the latest nightly tarball from the CDN index by date suffix
-              TARBALL_NAME=$(
-                curl -fsSL "${NIGHTLY_CDN_BASE}/" 2>/dev/null \
-                  | grep -oP 'therock-dist-linux-multiarch-\d+\.\d+\.\d+a\d{8}\.tar\.gz' \
-                  | sed 's/.*a\([0-9]\{8\}\)\.tar\.gz/\1 &/' \
-                  | sort -rn \
-                  | awk 'NR==1{print $2}'
-              )
-              if [ -z "${TARBALL_NAME}" ]; then
-                echo "::error::Could not detect latest nightly tarball from CDN index"
-                exit 1
-              fi
-              TARBALL_URL="${NIGHTLY_CDN_BASE}/${TARBALL_NAME}"
-              IMAGE_TAG=$(echo "${TARBALL_NAME}" \
-                | sed 's/therock-dist-linux-multiarch-//;s/\.tar\.gz//')
-              DATE=$(echo "${IMAGE_TAG}" | grep -oP '(?<=a)\d{8}')
-              SUFFIX="${IMAGE_TAG}"
-              S3_PREFIX="device-config-manager/nightly/${DATE}"
-              SCENARIO="nightly"
-              ;;
-
-            pull_request)
-              TARBALL_URL="${INPUT_URL:-${PR_FALLBACK_URL}}"
-              IMAGE_TAG="${DCM_VERSION}"
-              SUFFIX=$(echo "${GITHUB_SHA}" | cut -c1-8)
-              S3_PREFIX=""
-              SCENARIO="pull_request"
-              ;;
-
-            workflow_dispatch)
-              TARBALL_URL="${INPUT_URL:-${PR_FALLBACK_URL}}"
-              BASENAME=$(basename "${TARBALL_URL}" .tar.gz)
-              IMAGE_TAG="${INPUT_IMAGE_TAG:-${BASENAME#therock-dist-linux-multiarch-}}"
-              SUFFIX="${GITHUB_RUN_NUMBER}"
-              S3_PREFIX="device-config-manager/pre-release/${DCM_VERSION}-${SUFFIX}"
-              SCENARIO="pre-release"
-              ;;
-
-            *)
-              echo "::error::Unknown event: ${GITHUB_EVENT_NAME}"
-              exit 1
-              ;;
-          esac
-
-          for var in TARBALL_URL IMAGE_TAG DCM_VERSION; do
-            [ -z "${!var}" ] && echo "::error::${var} is empty" && exit 1
-          done
-
-          echo "rocm_tarball_url=${TARBALL_URL}" >> "$GITHUB_OUTPUT"
-          echo "image_tag=${IMAGE_TAG}"           >> "$GITHUB_OUTPUT"
-          echo "s3_prefix=${S3_PREFIX}"           >> "$GITHUB_OUTPUT"
-          echo "dcm_version=${DCM_VERSION}"       >> "$GITHUB_OUTPUT"
-
-          echo "suffix=${SUFFIX}"                 >> "$GITHUB_OUTPUT"
-          echo "scenario=${SCENARIO}"             >> "$GITHUB_OUTPUT"
-
-          echo "ROCm tarball : ${TARBALL_URL}"
-          echo "Image tag    : ${IMAGE_TAG}"
-          echo "Suffix       : ${SUFFIX}"
-          echo "Scenario     : ${SCENARIO}"
-          echo "S3 prefix    : ${S3_PREFIX}"
-          echo "DCM version  : ${DCM_VERSION}"
-
-      - name: Check dedup cache
-        id: dedup
-        if: github.event_name != 'pull_request'
-        continue-on-error: true
-        uses: actions/cache/restore@v4
-        with:
-          key: dedup-dcm-${{ steps.resolve.outputs.image_tag }}-${{ github.sha }}
-          path: .dedup-marker
-          lookup-only: true
-
-      - name: Dedup summary
-        if: steps.dedup.outputs.cache-hit == 'true' && inputs.force_rebuild != true
-        run: |
-          {
-            echo "## DCM Build — Skipped"
-            echo "Build already succeeded for tag \`${{ steps.resolve.outputs.image_tag }}\` at SHA \`${GITHUB_SHA}\`. No rebuild needed."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # Builds DCM container image.
   build:
     name: Build
     needs: resolve
@@ -176,138 +89,56 @@ jobs:
       - name: Build DCM image
         env:
           ROCM_TARBALL_URL: ${{ needs.resolve.outputs.rocm_tarball_url }}
-          DCM_IMAGE_TAG:    ${{ needs.resolve.outputs.image_tag }}
+          DCM_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
         run: make default
+
+      - name: Rename artifact with final name
+        env:
+          DCM_VERSION: ${{ needs.resolve.outputs.version }}
+          SUFFIX: ${{ needs.resolve.outputs.suffix }}
+        run: |
+          mv "docker/obj/config-manager-ubi9-latest.tgz" \
+             "docker/obj/config-manager-${DCM_VERSION}-${SUFFIX}.tgz"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: dcm-image-${{ needs.resolve.outputs.image_tag }}
           retention-days: 1
-          path: docker/obj/config-manager-ubi9-latest.tgz
+          path: docker/obj/config-manager-*.tgz
 
-
-  # Downloads build artifact, renames with dcm-version + identifier, uploads to S3 and Docker Hub.
   publish:
     name: Publish
     needs: [resolve, build]
-    if: always() && needs.resolve.outputs.build_needed == 'true' && github.event_name != 'pull_request' && needs.build.result == 'success'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dcm-image-${{ needs.resolve.outputs.image_tag }}
-          path: artifacts
+    if: >-
+      always() && needs.resolve.outputs.build_needed == 'true'
+      && github.event_name != 'pull_request'
+      && needs.build.result == 'success'
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@main
+    with:
+      component: dcm
+      image_tag: ${{ needs.resolve.outputs.image_tag }}
+      version: ${{ needs.resolve.outputs.version }}
+      suffix: ${{ needs.resolve.outputs.suffix }}
+      s3_prefix: ${{ needs.resolve.outputs.s3_prefix }}
+      trigger_sha: ${{ github.sha }}
+      s3_bucket: ${{ vars.THEROCK_BUCKET_NAME }}
+      artifact_names: "dcm-image-${{ needs.resolve.outputs.image_tag }}"
+      s3_file_globs: "*.tgz"
+      docker_images: |
+        config-manager-*.tgz|rocm/device-config-manager:${{ needs.resolve.outputs.image_tag }}|amdpsdo/device-config-manager:${{ needs.resolve.outputs.version }}-${{ needs.resolve.outputs.suffix }}|false
+    secrets:
+      ROCK_CI_S3_SECRET: ${{ secrets.ROCK_CI_S3_SECRET }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+      DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
 
-      - name: Rename artifact with dcm-version + identifier
-        env:
-          IMAGE_TAG:   ${{ needs.resolve.outputs.image_tag }}
-          DCM_VERSION: ${{ needs.resolve.outputs.dcm_version }}
-          SUFFIX:      ${{ needs.resolve.outputs.suffix }}
-        run: |
-          set -euo pipefail
-          mv "artifacts/config-manager-ubi9-latest.tgz" \
-             "artifacts/config-manager-${DCM_VERSION}-${SUFFIX}.tgz"
-          echo "Renamed artifact:"
-          ls artifacts/
-
-      - name: Validate upload prerequisites
-        env:
-          HAS_ARN: ${{ secrets.ROCK_CI_S3_SECRET != '' }}
-        run: |
-          if [ "${HAS_ARN}" != "true" ]; then
-            echo "::error::ROCK_CI_S3_SECRET secret is not set"
-            exit 1
-          fi
-          if [ -z "${S3_BUCKET}" ]; then
-            echo "::error::THEROCK_BUCKET_NAME variable is not set"
-            exit 1
-          fi
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.ROCK_CI_S3_SECRET }}
-          aws-region: us-east-1
-
-      - name: Upload artifact to S3
-        id: s3-upload
-        env:
-          S3_PREFIX: ${{ needs.resolve.outputs.s3_prefix }}
-        run: |
-          set -euo pipefail
-          FILE=$(ls artifacts/config-manager-*.tgz)
-          echo "Uploading: ${FILE} → s3://${S3_BUCKET}/${S3_PREFIX}/$(basename "${FILE}")"
-          aws s3 cp "${FILE}" "s3://${S3_BUCKET}/${S3_PREFIX}/$(basename "${FILE}")" --no-progress
-          echo "Uploaded to s3://${S3_BUCKET}/${S3_PREFIX}/"
-          aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --human-readable || true
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
-      - name: Push image to amdpsdo registry
-        id: registry-push
-        env:
-          IMAGE_TAG:   ${{ needs.resolve.outputs.image_tag }}
-          DCM_VERSION: ${{ needs.resolve.outputs.dcm_version }}
-          SUFFIX:      ${{ needs.resolve.outputs.suffix }}
-        run: |
-          set -euo pipefail
-          PUSH_TAG="${DCM_VERSION}-${SUFFIX}"
-
-          docker load < "artifacts/config-manager-${PUSH_TAG}.tgz"
-          docker tag "docker.io/rocm/device-config-manager:${IMAGE_TAG}" \
-                     "docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
-          docker push "docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
-          echo "Pushed docker.io/amdpsdo/device-config-manager:${PUSH_TAG}"
-
-      - name: Create dedup marker
-        if: ${{ always() && steps.s3-upload.outcome == 'success' && steps.registry-push.outcome == 'success' }}
-        run: mkdir -p .dedup-marker && echo "ok" > .dedup-marker/ok
-      - name: Save dedup marker to cache
-        uses: actions/cache/save@v4
-        if: ${{ always() && steps.s3-upload.outcome == 'success' && steps.registry-push.outcome == 'success' }}
-        continue-on-error: true
-        with:
-          key: dedup-dcm-${{ needs.resolve.outputs.image_tag }}-${{ github.sha }}
-          path: .dedup-marker
-
-      - name: Generate build summary
-        if: always()
-        env:
-          IMAGE_TAG:        ${{ needs.resolve.outputs.image_tag }}
-          ROCM_TARBALL_URL: ${{ needs.resolve.outputs.rocm_tarball_url }}
-          S3_PREFIX:        ${{ needs.resolve.outputs.s3_prefix }}
-          BUILD_RESULT:     ${{ needs.build.result }}
-          S3_RESULT:        ${{ steps.s3-upload.outcome }}
-          REGISTRY_RESULT:  ${{ steps.registry-push.outcome }}
-        run: |
-          {
-            echo "## DCM Build — \`${IMAGE_TAG}\`"
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| ROCm tarball | \`${ROCM_TARBALL_URL}\` |"
-            echo "| Image tag | \`${IMAGE_TAG}\` |"
-            echo "| Artifact suffix | \`${{ needs.resolve.outputs.suffix }}\` |"
-            echo "| Build | ${BUILD_RESULT} |"
-            echo "| S3 upload | ${S3_RESULT:-failure} |"
-            echo "| Registry push | ${REGISTRY_RESULT:-skipped} |"
-            echo "| S3 prefix | \`s3://${S3_BUCKET}/${S3_PREFIX}/\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # Calls the orchestrator in common-infra-operator to run validation.
-  # Synchronous — this workflow waits for validation to complete.
   validate:
     name: Validate
     needs: [resolve, build, publish]
-    if: always() && needs.resolve.outputs.build_needed == 'true' && needs.build.result == 'success' && (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    if: >-
+      always() && needs.resolve.outputs.build_needed == 'true'
+      && needs.build.result == 'success'
+      && (needs.publish.result == 'success' || needs.publish.result == 'skipped')
     uses: ROCm/common-infra-operator/.github/workflows/rocm-orchestrator.yml@main
     with:
       component: dcm
@@ -315,32 +146,58 @@ jobs:
       s3_prefix: ${{ needs.resolve.outputs.s3_prefix }}
 
   results:
-    name: Validation results
-    needs: [resolve, validate]
-    if: always() && needs.validate.result != 'skipped'
+    name: Results
+    needs: [resolve, build, publish, validate]
+    if: always() && needs.resolve.outputs.build_needed == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - name: Post validation summary
+      - name: Determine overall status
+        id: status
         env:
-          VALIDATE_JOB:    ${{ needs.validate.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          VALIDATE_JOB: ${{ needs.validate.result }}
           VALIDATE_OUTPUT: ${{ needs.validate.outputs.result }}
         run: |
-          if [ "${VALIDATE_JOB}" = "success" ] && [ "${VALIDATE_OUTPUT}" = "pass" ]; then
+          if [ "${BUILD_RESULT}" != "success" ]; then
+            STATUS="BUILD_FAILED"
+          elif [ "${PUBLISH_RESULT}" != "success" ] && [ "${PUBLISH_RESULT}" != "skipped" ]; then
+            STATUS="PUBLISH_FAILED"
+          elif [ "${VALIDATE_JOB}" = "success" ] && [ "${VALIDATE_OUTPUT}" = "pass" ]; then
             STATUS="PASSED"
           elif [ "${VALIDATE_JOB}" = "success" ]; then
-            STATUS="FAILED — ${VALIDATE_OUTPUT}"
+            STATUS="FAILED"
           elif [ "${VALIDATE_JOB}" = "cancelled" ]; then
-            STATUS="CANCELLED — orchestrator was cancelled before completing"
+            STATUS="CANCELLED"
           else
-            STATUS="ERROR — orchestrator job failed (timeout, crash, or misconfiguration)"
+            STATUS="ERROR"
           fi
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
 
+      - name: Post summary
+        env:
+          STATUS: ${{ steps.status.outputs.status }}
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          SCENARIO: ${{ needs.resolve.outputs.scenario }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          SUFFIX: ${{ needs.resolve.outputs.suffix }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          VALIDATE_OUTPUT: ${{ needs.validate.outputs.result }}
+        run: |
           {
-            echo "## Validation — \`${{ needs.resolve.outputs.scenario }}\`"
+            echo "## DCM Build Results — \`${SCENARIO}\`"
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| Status | ${STATUS} |"
-            echo "| Orchestrator job | ${VALIDATE_JOB} |"
-            echo "| Orchestrator output | ${VALIDATE_OUTPUT:-n/a} |"
+            echo "| Overall | **${STATUS}** |"
+            echo "| Image tag | \`${IMAGE_TAG}\` |"
+            echo "| Version | \`${VERSION}\` |"
+            echo "| Suffix | \`${SUFFIX}\` |"
+            echo "| Build | ${BUILD_RESULT} |"
+            echo "| Publish | ${PUBLISH_RESULT} |"
+            echo "| Validate (job) | ${VALIDATE_RESULT} |"
+            echo "| Validate (output) | ${VALIDATE_OUTPUT:-n/a} |"
           } >> "$GITHUB_STEP_SUMMARY"
+
