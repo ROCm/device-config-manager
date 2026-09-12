@@ -61,7 +61,7 @@ jobs:
   resolve:
     name: Resolve
     needs: read-version
-    uses: ROCm/common-infra-operator/.github/workflows/rocm-resolve.yml@71da675c5fba3328eb470e13a0fc9ad1401f5456
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-resolve.yml@d322879bf9fcd790a8ab92aed150874c52a957ed
     with:
       component: dcm
       version: ${{ needs.read-version.outputs.version }}
@@ -114,7 +114,7 @@ jobs:
       always() && needs.resolve.outputs.build_needed == 'true'
       && github.event_name != 'pull_request'
       && needs.build.result == 'success'
-    uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@71da675c5fba3328eb470e13a0fc9ad1401f5456
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@d322879bf9fcd790a8ab92aed150874c52a957ed
     with:
       component: dcm
       image_tag: ${{ needs.resolve.outputs.image_tag }}
@@ -139,7 +139,7 @@ jobs:
       always() && needs.resolve.outputs.build_needed == 'true'
       && needs.build.result == 'success'
       && (needs.publish.result == 'success' || needs.publish.result == 'skipped')
-    uses: ROCm/common-infra-operator/.github/workflows/rocm-orchestrator.yml@71da675c5fba3328eb470e13a0fc9ad1401f5456
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-orchestrator.yml@d322879bf9fcd790a8ab92aed150874c52a957ed
     with:
       component: dcm
       scenario: ${{ needs.resolve.outputs.scenario }}
