@@ -137,13 +137,13 @@ AMDSMI_REPO   ?= https://github.com/ROCm/rocm-systems.git
 AMDSMI_BRANCH ?= release/therock-10.0
 AMDSMI_COMMIT ?= 6ccde5dbc2714a95f4fa92a7f2d3aa185ed2174b
 AMDSMI_SUBDIR ?= projects/amdsmi
-PROJECT_VERSION ?= "1.5.2"
+PROJECT_VERSION ?= "1.5.3"
 
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?= https://stable.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.0.0.tar.gz
-ROCM_VERSION ?= 10.0.0
+ROCM_TARBALL_URL ?= https://rc.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.1.0rc0.tar.gz
+ROCM_VERSION ?= 10.1.0rc0
 # amdsmi commit auto-extracted from the fetched tarball; empty until fetched.
 ROCM_COMMIT = $(shell cat "$(ROCM_COMMIT_FILE)" 2>/dev/null)
 
@@ -338,7 +338,7 @@ helm-build: helm-lint
 
 .PHONY: helm-install
 helm-install: helm-build
-	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.5.2.tgz -n kube-amd-gpu --create-namespace -f values.yaml
+	cd $(HELM_CHARTS_DIR); helm install amd-gpu-operator ./device-config-manager-charts-v1.5.3.tgz -n kube-amd-gpu --create-namespace -f values.yaml
 
 .PHONY: helm-uninstall
 helm-uninstall:
