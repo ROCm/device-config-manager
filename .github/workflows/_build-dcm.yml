@@ -1,0 +1,56 @@
+name: Build DCM
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        required: true
+        type: string
+      rocm_tarball_url:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      suffix:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+
+  build-dcm:
+    name: Build DCM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free up runner disk space
+        uses: ROCm/common-infra-operator/.github/actions/free-disk-space@840846bb5b34109a358b36e644dc73246f5e1eb6
+
+      - name: Build DCM image
+        env:
+          ROCM_TARBALL_URL: ${{ inputs.rocm_tarball_url }}
+          DCM_IMAGE_TAG:    ${{ inputs.image_tag }}
+        run: make default
+
+      - name: Stage artifact with final name
+        env:
+          DCM_VERSION: ${{ inputs.version }}
+          SUFFIX:      ${{ inputs.suffix }}
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+          mv "docker/obj/config-manager-ubi9-latest.tgz" \
+             "staging/config-manager-${DCM_VERSION}-${SUFFIX}.tgz"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dcm-image-${{ inputs.image_tag }}
+          retention-days: 1
+          path: staging/

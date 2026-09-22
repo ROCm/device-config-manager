@@ -1,33 +1,34 @@
-name: DCM Build
+name: DCM Pre-Release Build
 
-# Builds DCM container image against a ROCm tarball.
-# Job graph: read-version → resolve (shared) → build-dcm → publish (shared) → results
-# Triggers: nightly (cron), PR (path-filtered), manual re-trigger (workflow_dispatch)
+# Builds DCM container image against a ROCm RC or GA tarball.
+# Provide dcm_version (e.g. v1.5.3) and rocm_version (e.g. 10.1.0rc4 or 10.1.0).
+# When rocm_version contains rc (e.g. 10.1.0rc4), uses rc.repo.amd.com.
+# When rocm_version has no rc suffix (e.g. 10.1.0), uses stable.repo.amd.com (GA build).
+# Artifacts land at: device-config-manager/pre-release/{dcm_version}-{rocm_version}-{N}/
+# Image tag format:  {dcm_version}-{rocm_version}-{N}  e.g. v1.5.3-10.1.0rc4-1
+#
+# Job graph: resolve → build-dcm → publish → results
 
 on:
-  schedule:
-    - cron: '0 13 * * *'
-
-  pull_request:
-    branches:
-      - '**'
-    paths:
-      - '.github/workflows/rocm-build.yml'
-      - '.github/workflows/_build-dcm.yml'
-      - 'docker/**'
-      - 'Makefile'
-
   workflow_dispatch:
     inputs:
+      dcm_version:
+        description: 'DCM version (e.g. v1.5.3)'
+        required: true
+        type: string
+      rocm_version:
+        description: 'ROCm version (e.g. 10.1.0rc4 for RC build, or 10.1.0 for GA build)'
+        required: true
+        type: string
       force_rebuild:
-        description: 'Force rebuild even if already built for this SHA + image tag'
+        description: 'Force rebuild even if already built for this tarball + SHA'
         required: false
         type: boolean
         default: false
 
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('dcm-pr-{0}', github.event.pull_request.number) || 'dcm-nightly' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: dcm-prerelease-${{ inputs.dcm_version }}-${{ inputs.rocm_version }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -36,30 +37,16 @@ permissions:
 
 jobs:
 
-  read-version:
-    name: Read version from Makefile
-    runs-on: ubuntu-24.04
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-      tarball_url: ${{ steps.v.outputs.tarball_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: v
-        run: |
-          echo "version=$(grep -m1 'PROJECT_VERSION ?=' Makefile | awk '{print $NF}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-          echo "tarball_url=$(grep -m1 'ROCM_TARBALL_URL ?=' Makefile | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
-
   resolve:
     name: Resolve
-    needs: read-version
     uses: ROCm/common-infra-operator/.github/workflows/rocm-resolve.yml@840846bb5b34109a358b36e644dc73246f5e1eb6
     with:
       component: dcm
-      version: ${{ needs.read-version.outputs.version }}
-      tarball_url_default: ${{ needs.read-version.outputs.tarball_url }}
+      version: ${{ inputs.dcm_version }}
+      rocm_version: ${{ inputs.rocm_version }}
       s3_component_prefix: device-config-manager
       s3_bucket: ${{ vars.THEROCK_BUCKET_NAME }}
-      trigger_event: ${{ github.event_name }}
+      trigger_event: pre-release
       trigger_sha: ${{ github.sha }}
       force_rebuild: ${{ inputs.force_rebuild || false }}
     secrets:
@@ -81,7 +68,6 @@ jobs:
     needs: [resolve, build-dcm]
     if: >-
       always() && needs.resolve.outputs.build_needed == 'true'
-      && github.event_name != 'pull_request'
       && needs.build-dcm.result == 'success'
     uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@840846bb5b34109a358b36e644dc73246f5e1eb6
     with:
@@ -112,7 +98,6 @@ jobs:
       - name: Post summary
         env:
           IMAGE_TAG:      ${{ needs.resolve.outputs.image_tag }}
-          SCENARIO:       ${{ needs.resolve.outputs.scenario }}
           VERSION:        ${{ needs.resolve.outputs.version }}
           SUFFIX:         ${{ needs.resolve.outputs.suffix }}
           S3_PREFIX:      ${{ needs.resolve.outputs.s3_prefix }}
@@ -121,7 +106,7 @@ jobs:
           PUBLISH_RESULT: ${{ needs.publish.result }}
         run: |
           {
-            echo "## DCM Build Results — \`${SCENARIO}\`"
+            echo "## DCM Pre-Release Build Results"
             echo ""
             echo "| | |"
             echo "|---|---|"
@@ -132,4 +117,3 @@ jobs:
             echo "| Publish | ${PUBLISH_RESULT} |"
             [ -n "${S3_PREFIX}" ] && [ "${PUBLISH_RESULT}" = "success" ] && echo "| S3 location | \`s3://${S3_BUCKET}/${S3_PREFIX}/\` |" || true
           } >> "$GITHUB_STEP_SUMMARY"
-
