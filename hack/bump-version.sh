@@ -104,8 +104,8 @@ sed -i -e "s|^version:.*|version: ${VERSION_TAG}|" \
 	"$CHART_YAML"
 track_change "$CHART_YAML"
 
-# Makefile: PROJECT_VERSION (bare, quoted) + helm-install chart tarball (tag)
-sed -i -e "s|^PROJECT_VERSION ?= .*|PROJECT_VERSION ?= \"${VERSION_NUM}\"|" \
+# Makefile: PROJECT_VERSION (v-prefixed, quoted) + helm-install chart tarball (tag)
+sed -i -e "s|^PROJECT_VERSION ?= .*|PROJECT_VERSION ?= \"${VERSION_TAG}\"|" \
 	-e "s|device-config-manager-charts-v[0-9]\+\.[0-9]\+\.[0-9]\+\.tgz|device-config-manager-charts-${VERSION_TAG}.tgz|g" \
 	"$MAKEFILE"
 track_change "$MAKEFILE"
