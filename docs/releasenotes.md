@@ -2,6 +2,9 @@
 
 ## v1.5.3
 
+- **ROCm 10.1 Libraries**
+  - Device Config Manager is now based on ROCm 10.1 libraries
+
 - **Bug Fixes and Stability Improvements**
 
 ## v1.5.2

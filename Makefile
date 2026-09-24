@@ -142,8 +142,8 @@ PROJECT_VERSION ?= "v1.5.3"
 EXCLUDE_PATTERN := "libamdsmi"
 GO_PKG := $(shell go list ./...  2>/dev/null | grep github.com/ROCm/device-config-manager | egrep -v ${EXCLUDE_PATTERN})
 
-ROCM_TARBALL_URL ?= https://rc.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.1.0rc1.tar.gz
-ROCM_VERSION ?= 10.1.0rc1
+ROCM_TARBALL_URL ?= https://rc.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.1.0rc2.tar.gz
+ROCM_VERSION ?= 10.1.0rc2
 # amdsmi commit auto-extracted from the fetched tarball; empty until fetched.
 ROCM_COMMIT = $(shell cat "$(ROCM_COMMIT_FILE)" 2>/dev/null)
 
