@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.5.4
+
+- **Bug Fixes and Stability Improvements**
+  - Release notes will be added prior to release
+
 ## v1.5.3
 
 - **ROCm 10.1 Libraries**
