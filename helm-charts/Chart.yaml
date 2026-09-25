@@ -3,8 +3,8 @@ name: device-config-manager-charts
 description: A Helm chart for AMD GPU Device Config Manager
 
 type: application
-version: v1.5.3
-appVersion: "v1.5.3"
+version: v1.5.4
+appVersion: "v1.5.4"
 maintainers:
 - email: nkomarla@amd.com
   name: Nikhil S K

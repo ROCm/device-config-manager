@@ -24,7 +24,7 @@ nodeSelector: {}
 
 image:
   repository: rocm/device-config-manager
-  tag: v1.5.3
+  tag: v1.5.4
   pullPolicy: Always
 
 # specify configmap name (mandatory)
@@ -37,14 +37,14 @@ configMap: "config-manager-config"
 make helm-build
 cd ./helm-charts
 helm install amd-gpu-operator \
-  ./device-config-manager-charts-v1.5.3.tgz -n kube-amd-gpu \
+  ./device-config-manager-charts-v1.5.4.tgz -n kube-amd-gpu \
   --create-namespace -f values.yaml
 ```
 
 The chart **always** creates and mounts the GPU profile `ConfigMap` from its template. **Omit** the `configMap` value key for the default name `default-dcm-config`; set `configMap` only when you want another object name (same chart-managed content).
 
 ```bash
-helm install amd-gpu-operator ./device-config-manager-charts-v1.5.3.tgz \
+helm install amd-gpu-operator ./device-config-manager-charts-v1.5.4.tgz \
   -n kube-amd-gpu --create-namespace \
   --set configMap=my-custom-dcm-config
 ```
