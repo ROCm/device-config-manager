@@ -9,6 +9,9 @@ on:
       rocm_tarball_url:
         required: true
         type: string
+      rocm_version:
+        required: true
+        type: string
       version:
         required: true
         type: string
@@ -36,6 +39,7 @@ jobs:
       - name: Build DCM image
         env:
           ROCM_TARBALL_URL: ${{ inputs.rocm_tarball_url }}
+          ROCM_VERSION:     ${{ inputs.rocm_version }}
           DCM_IMAGE_TAG:    ${{ inputs.image_tag }}
         run: make default
 
