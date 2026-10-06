@@ -107,7 +107,7 @@ jobs:
       s3_file_globs:        "*.tgz"
       docker_images: |
         config-manager-*.tgz|rocm/device-config-manager:${{ needs.resolve.outputs.image_tag }}|amdpsdo/device-config-manager:${{ needs.resolve.outputs.version }}-${{ needs.resolve.outputs.suffix }}|false
-        config-manager-*.tgz|rocm/device-config-manager:${{ needs.resolve.outputs.image_tag }}|rocm/device-config-manager:nightly-${{ needs.resolve.outputs.nightly_date }}|false
+        config-manager-*.tgz|rocm/device-config-manager:${{ needs.resolve.outputs.image_tag }}|rocm/device-config-manager:nightly-${{ needs.resolve.outputs.nightly_tag }}|false
     secrets:
       ROCK_CI_S3_SECRET: ${{ secrets.ROCK_CI_S3_SECRET }}
       DOCKER_TOKEN:      ${{ secrets.DOCKER_TOKEN }}
