@@ -28,10 +28,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Free up runner disk space
-        uses: ROCm/common-infra-operator/.github/actions/free-disk-space@d2e10a71e2af56af1fa0177901570daa75e8ac2b
+        uses: ROCm/common-infra-operator/.github/actions/free-disk-space@51769beb79300d5c2787fb5bd161e93c922355fb
 
       - name: Build DCM image
         env:
@@ -49,7 +49,7 @@ jobs:
           mv "docker/obj/config-manager-ubi9-latest.tgz" \
              "staging/config-manager-${DCM_VERSION}-${SUFFIX}.tgz"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dcm-image-${{ inputs.image_tag }}
           retention-days: 1
