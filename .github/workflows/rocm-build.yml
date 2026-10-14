@@ -79,7 +79,10 @@ jobs:
     permissions:
       contents: read
       actions: write
-    if: needs.resolve.outputs.build_needed == 'true'
+    if: >-
+      always()
+      && needs.resolve.result == 'success'
+      && needs.resolve.outputs.build_needed == 'true'
     uses: ./.github/workflows/_build-dcm.yml
     with:
       image_tag:        ${{ needs.resolve.outputs.image_tag }}
