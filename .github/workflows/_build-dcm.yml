@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Free up runner disk space
-        uses: ROCm/common-infra-operator/.github/actions/free-disk-space@440c5a36a830dc6bc4e8f97a9839f05b38ff4edc
+        uses: ROCm/common-infra-operator/.github/actions/free-disk-space@9c6a249c7abb8bda28b2940dbb536e22e56f3dce
 
       - name: Build DCM image
         env:
