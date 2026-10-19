@@ -40,7 +40,7 @@ fastjsonschema==2.21.1
     # via rocm-docs-core
 gitdb==4.0.11
     # via gitpython
-gitpython==3.1.59
+gitpython==3.1.62
     # via rocm-docs-core
 idna==3.10
     # via requests
@@ -77,7 +77,7 @@ pygments==2.18.0
     #   accessible-pygments
     #   pydata-sphinx-theme
     #   sphinx
-pyjwt[crypto]==2.14.0
+pyjwt[crypto]==2.15.0
     # via pygithub
 pynacl==1.5.0
     # via pygithub
@@ -138,7 +138,7 @@ typing-extensions==4.13.2
     # via
     #   pydata-sphinx-theme
     #   pygithub
-urllib3==2.2.3
+urllib3==2.8.0
     # via
     #   pygithub
     #   requests
