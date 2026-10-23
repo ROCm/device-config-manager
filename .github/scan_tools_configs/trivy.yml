@@ -28,6 +28,9 @@
 # Environment and generated-output exclusions support local scans; these
 # paths are absent from clean CI checkouts.
 scan:
+  # `vendor` is deliberately NOT skipped here: skip-dirs applies to every
+  # scanner, and skipping it would also drop license scanning of the vendored
+  # Go modules. The few vendored misconfig files are handled in skip-files.
   skip-dirs:
     - .git
     - .venv*
@@ -36,3 +39,33 @@ scan:
     - dist
     - node_modules
     - __pycache__
+
+  skip-files:
+    # Vendored third-party files trivy's misconfig scanner flags. Listed per
+    # file (not via a vendor skip-dir) so license scanning of the vendored
+    # modules stays active.
+    - vendor/k8s.io/apimachinery/pkg/util/managedfields/pod.yaml
+    - vendor/github.com/docker/distribution/Dockerfile
+    - vendor/github.com/rubenv/sql-migrate/Dockerfile
+    - vendor/go.opentelemetry.io/otel/dependencies.Dockerfile
+
+    # Root-by-design build/tooling Dockerfiles: the thin Go build container and
+    # the AMD SMI library builder images need root to compile sources and
+    # install packages. Listed per file rather than ignoring DS-0002 repo-wide,
+    # so the check still fires on any new Dockerfile.
+    - docker/Dockerfile.build
+    - tools/smilib-builderimage/Dockerfile.azure
+    - tools/smilib-builderimage/Dockerfile.ubuntu22
+    - tools/smilib-builderimage/Dockerfile.ubuntu24
+
+    # Shipped runtime image. The DCM DaemonSet runs as root by design: it
+    # configures GPU/NIC hardware on the host (device nodes, AMD SMI library),
+    # which requires root and host access. A non-root USER would break device
+    # configuration, so DS-0002 is intrinsic to this file.
+    - docker/Dockerfile
+
+    # Shipped DaemonSet manifest. Privileged-by-design workload (host device
+    # access for GPU/NIC configuration); the readOnlyRootFilesystem (KSV-0014),
+    # privileged (KSV-0017), and default securityContext/AppArmor
+    # (KSV-0118/KSV-0121) findings are intrinsic to that role.
+    - helm-charts/templates/daemonsets.yaml

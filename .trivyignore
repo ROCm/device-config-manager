@@ -1,0 +1,32 @@
+# Copyright Advanced Micro Devices, Inc.
+# SPDX-License-Identifier: MIT
+#
+# Trivy vulnerability suppressions.
+# Reference: https://trivy.dev/latest/docs/configuration/filtering/
+#
+# The shared scan workflow discovers this file at the repository root and passes
+# it to trivy as --ignorefile. This is trivy's plain-text format: a bare CVE ID
+# suppresses that finding everywhere, with no path scoping or expiry.
+#
+# Reserved for transitive (indirect) Go dependencies where the vulnerable code
+# path is not reachable in this project -- a Linux-only GPU/NIC device-config
+# DaemonSet -- AND no clean upstream fix is available: either no fixed version
+# is published, or the fixed version breaks the build. Every directly fixable
+# HIGH/CRITICAL advisory is addressed by a version bump in go.mod instead; only
+# the residual, unfixable, unreachable findings are listed here.
+
+# github.com/docker/cli -- Privilege escalation via malicious plugin binaries on
+# the Docker CLI *for Windows*. DCM ships only as a Linux DaemonSet, so the
+# Windows-specific code path is unreachable. The fixed version (v29.2.0) is also
+# incompatible with the pinned oras.land/oras-go v1.2.5 (the docker AuthConfig
+# type moved packages), which breaks compilation. Indirect dependency, never
+# invoked by DCM.
+CVE-2025-15558
+
+# github.com/docker/docker (moby) -- No fixed version is published upstream for
+# either advisory. Both require driving the Moby engine's image build/pull path
+# with a malicious image (arbitrary code execution / host file overwrite via
+# race), which DCM -- a device-config daemon that never builds or pulls
+# container images -- does not exercise. Indirect dependency.
+CVE-2026-41567
+CVE-2026-42306
