@@ -433,7 +433,7 @@ loadgpu:
 mod:
 	@echo "setting up go mod packages"
 	@go mod tidy
-	@go mod edit -go=1.26.10
+	@go mod edit -go=1.26.11
 	@go mod vendor
 
 .PHONY:checks

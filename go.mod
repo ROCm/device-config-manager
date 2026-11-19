@@ -1,6 +1,6 @@
 module github.com/ROCm/device-config-manager
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
